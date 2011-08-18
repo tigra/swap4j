@@ -1,0 +1,1 @@
+Do you know what the swap is in linux or windows? Imagine the same for java -- objects are stored not in memory but in your preferred storage -- disk, database or anything, and loaded into memory only when they're needed.
