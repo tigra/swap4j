@@ -86,7 +86,7 @@ public class UsageScenario {
     @Test
     public void fooShouldNotConsumeMemoryBeingWrapped() {
 
-        Holder<String, Foo> holder = new Holder<String, Foo>("abc") {};
+       // Holder<String, Foo> holder = new Holder<String, Foo>("abc") {};
         
         
         

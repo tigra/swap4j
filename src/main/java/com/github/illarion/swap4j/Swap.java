@@ -15,7 +15,7 @@ import java.util.UUID;
 public final class Swap {
 
     private static final Set<UUID> ids = new HashSet<UUID>();
-
+    
     public static UUID newUniqueId() {
         UUID randomUUID;
 

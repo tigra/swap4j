@@ -4,14 +4,16 @@
  */
 package com.github.illarion.swap4j;
 
+import java.util.UUID;
+
 /**
  *
  * @author shaman
  */
-public interface StoreService<T, I> {
+public interface StoreService<T> {
     
-    public void store(T t, I id);
+    public void store(T t, UUID id);
     
-    public T reStore(I id);
+    public T reStore(UUID id);
     
 }
