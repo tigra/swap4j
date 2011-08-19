@@ -2,7 +2,7 @@
  * To change this template, choose Tools | Templates
  * and open the template in the editor.
  */
-package com.github.illarion.swap4j;
+package com.github.illarion.swap4j.store;
 
 import java.util.UUID;
 

@@ -4,6 +4,7 @@
  */
 package com.github.illarion.swap4j;
 
+import com.github.illarion.swap4j.store.StoreService;
 import java.util.UUID;
 
 /**
