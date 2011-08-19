@@ -67,10 +67,10 @@ public class SwapTest {
 
         Bar bar = swap.wrap(new Bar("new"), Bar.class);
 
-        bar.change("1");
-        bar.change("2");
+        bar.change("old");
+        bar.change("too old");
 
-        assertEquals("2", bar.getValue());
+        assertEquals("too old", bar.getValue());
     }
 
     @Test
