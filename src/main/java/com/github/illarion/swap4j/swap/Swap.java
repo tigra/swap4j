@@ -5,6 +5,8 @@
 package com.github.illarion.swap4j.swap;
 
 import com.github.illarion.swap4j.store.StoreService;
+import java.util.List;
+import java.util.Set;
 
 /**
  *
@@ -21,4 +23,13 @@ public class Swap {
     public <T> T wrap(T instance, Class<T> clazz) {
         return new Proxy<T>(store, instance, clazz).get();
     }
+    
+    public <T> List<T> newWrapList(Class<T> clazz){
+        return new ProxyList<T>(this, clazz);
+    }
+    
+    public <T> Set<T> newWrapSet(Class<T> clazz){
+        return new ProxySet<T>(this, clazz);
+    }
+    
 }

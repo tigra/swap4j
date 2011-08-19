@@ -16,7 +16,7 @@ import net.sf.cglib.proxy.MethodProxy;
  *
  * @author shaman
  */
-public class Proxy<T> {
+class Proxy<T> {
 
     private final UUID id = UUID.randomUUID();
     private final StoreService store;
@@ -27,6 +27,7 @@ public class Proxy<T> {
         this.store = store;
         this.t = t;
         this.clazz = clazz;
+        unload();
     }
     private Callback callback = new MethodInterceptor() {
 
@@ -81,4 +82,12 @@ public class Proxy<T> {
         }
 
     }
+
+    @Override
+    protected void finalize() throws Throwable {
+        unload();
+        super.finalize();
+    }
+    
+    
 }

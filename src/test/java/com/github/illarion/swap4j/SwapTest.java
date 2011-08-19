@@ -4,7 +4,8 @@
  */
 package com.github.illarion.swap4j;
 
-import com.github.illarion.swap4j.swap.Proxy;
+import java.util.Set;
+import java.util.List;
 import java.util.Map;
 import java.util.HashMap;
 import com.github.illarion.swap4j.store.StoreService;
@@ -22,6 +23,13 @@ public class SwapTest {
     public static class Bar {
 
         private String value = "new";
+
+        public Bar(String value) {
+            this.value = value;
+        }
+
+        public Bar() {
+        }
 
         public void change(String change) {
             value = change;
@@ -54,14 +62,44 @@ public class SwapTest {
     };
 
     @Test
-    public void testSwap() {
+    public void testSwapSingleValue() {
         Swap swap = new Swap(store);
 
-        Bar bar = swap.wrap(new Bar(), Bar.class);
+        Bar bar = swap.wrap(new Bar("new"), Bar.class);
 
         bar.change("1");
         bar.change("2");
 
         assertEquals("2", bar.getValue());
+    }
+
+    @Test
+    public void testSwapList() {
+        Swap swap = new Swap(store);
+
+        List<Bar> list = swap.newWrapList(Bar.class);
+
+        list.add(new Bar("1"));
+        list.add(new Bar("2"));
+        list.add(new Bar("3"));
+
+        list.get(1).change("5");
+
+    }
+
+    @Test
+    public void testSwapSet() {
+        Swap swap = new Swap(store);
+
+        Set<Bar> set = swap.newWrapSet(Bar.class);
+
+        set.add(new Bar("1"));
+        set.add(new Bar("1"));
+        set.add(new Bar("3"));
+
+        set.iterator().next().change("5");
+        
+        
+
     }
 }
