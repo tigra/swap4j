@@ -35,8 +35,6 @@ public class SwapTest {
         public String toString() {
             return "Bar{" + "value=" + value + '}';
         }
-        
-        
     }
     private StoreService store = new StoreService() {
 
@@ -59,19 +57,11 @@ public class SwapTest {
     public void testSwap() {
         Swap swap = new Swap(store);
 
-        Proxy<Bar> proxy = swap.wrap(new Bar(), Bar.class);
+        Bar bar = swap.wrap(new Bar(), Bar.class);
 
-        {
-            Bar bar = proxy.get();
-            bar.change("1");
-            bar.change("2");
-        }
-        
-        Bar baz = proxy.get();
-        
-        assertEquals("2",baz.getValue());
-        
-        
+        bar.change("1");
+        bar.change("2");
 
+        assertEquals("2", bar.getValue());
     }
 }
