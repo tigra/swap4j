@@ -20,7 +20,7 @@ public class Proxy<T> {
 
     private final UUID id = UUID.randomUUID();
     private final StoreService store;
-    private T t;
+    private volatile T t;
     private final Class<T> clazz;
 
     public Proxy(StoreService store, T t, Class<T> clazz) {
@@ -43,7 +43,9 @@ public class Proxy<T> {
                 if (null == t) {
                     throw new NullPointerException("t not loaded!");
                 }
-                return mp.invoke(t, os);
+                Object result =  mp.invoke(t, os);
+                unload();
+                return result;
             }
 
 
@@ -59,11 +61,13 @@ public class Proxy<T> {
 
     private void load() {
         synchronized (id) {
-            t = store.reStore(id);
+            if (null == t) {
+                t = store.reStore(id);
+            }
         }
     }
 
-    T get() {
+    public T get() {
         synchronized (id) {
             if (null == t) {
                 load();
@@ -72,7 +76,7 @@ public class Proxy<T> {
             Enhancer enhancer = new Enhancer();
             enhancer.setCallback(callback);
             enhancer.setSuperclass(clazz);
-            
+
             return (T) enhancer.create();
         }
 

@@ -12,7 +12,7 @@ import java.util.UUID;
  */
 public interface StoreService {
     
-    public<T> T store(T t, UUID id);
+    public<T> void store(T t, UUID id);
     
     public<T> T reStore(UUID id);
     
