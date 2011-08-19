@@ -12,20 +12,25 @@ import java.util.UUID;
  *
  * @author shaman
  */
-public final class Swap {
+public final class IDFactory {
 
     private static final Set<UUID> ids = new HashSet<UUID>();
+
+    private IDFactory() {
+    }
+    
+    
     
     public static UUID newUniqueId() {
-        UUID randomUUID;
+        UUID newId;
 
         synchronized (ids) {
             do {
-                randomUUID = UUID.randomUUID();
-            } while (!ids.add(randomUUID));
+                newId = UUID.randomUUID();
+            } while (!ids.add(newId));
         }
         
-        return randomUUID;
+        return newId;
     }
     
     

@@ -13,11 +13,11 @@ import java.util.UUID;
  */
 public abstract class Holder<T> {
 
-    private final StoreService<T> store;
+    private final StoreService store;
     private final UUID id;
     private T t;
 
-    public Holder(StoreService<T> store, UUID id) {
+    public Holder(StoreService store, UUID id) {
         this.store = store;
         this.id = id;
     }

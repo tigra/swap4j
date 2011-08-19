@@ -10,10 +10,10 @@ import java.util.UUID;
  *
  * @author shaman
  */
-public interface StoreService<T> {
+public interface StoreService {
     
-    public void store(T t, UUID id);
+    public<T> T store(T t, UUID id);
     
-    public T reStore(UUID id);
+    public<T> T reStore(UUID id);
     
 }
