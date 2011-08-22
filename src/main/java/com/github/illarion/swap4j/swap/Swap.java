@@ -4,7 +4,8 @@
  */
 package com.github.illarion.swap4j.swap;
 
-import com.github.illarion.swap4j.store.StoreService;
+import com.github.illarion.swap4j.store.Store;
+import com.github.illarion.swap4j.store.StoreException;
 import java.util.List;
 import java.util.Set;
 
@@ -14,14 +15,14 @@ import java.util.Set;
  */
 public class Swap {
 
-    private final StoreService store;
+    private final Store store;
 
-    public Swap(StoreService store) {
+    public Swap(Store store) {
         this.store = store;
     }
 
-    public <T> T wrap(T instance, Class<T> clazz) {
-        return new Proxy<T>(store, instance, clazz).get();
+    public <T> Proxy<T> wrap(T instance, Class<T> clazz) throws StoreException {
+        return new Proxy<T>(store, instance, clazz);
     }
     
     public <T> List<T> newWrapList(Class<T> clazz){

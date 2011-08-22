@@ -8,12 +8,14 @@ import java.io.IOException;
 import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
+import org.junit.Ignore;
 import org.junit.Test;
 
 /**
  *
  * @author shaman
  */
+@Ignore("Not a test")
 public class ProxyTest {
 
     public static interface Foo {

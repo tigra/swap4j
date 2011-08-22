@@ -4,11 +4,12 @@
  */
 package com.github.illarion.swap4j;
 
+import com.github.illarion.swap4j.store.StoreException;
 import java.util.Set;
 import java.util.List;
 import java.util.Map;
 import java.util.HashMap;
-import com.github.illarion.swap4j.store.StoreService;
+import com.github.illarion.swap4j.store.Store;
 import com.github.illarion.swap4j.swap.Swap;
 import java.util.UUID;
 import org.junit.Test;
@@ -18,7 +19,7 @@ import static org.junit.Assert.*;
  *
  * @author shaman
  */
-public class SwapTest {
+public class SimpleTest {
 
     public static class Bar {
 
@@ -44,28 +45,28 @@ public class SwapTest {
             return "Bar{" + "value=" + value + '}';
         }
     }
-    private StoreService store = new StoreService() {
+    private Store store = new Store() {
 
         private Map<UUID, Object> map = new HashMap<UUID, Object>();
 
         @Override
-        public <T> void store(T t, UUID id) {
+        public <T> void store(UUID id, T t) {
             System.out.println("Storing " + t.toString());
             map.put(id, t);
         }
 
         @Override
-        public <T> T reStore(UUID id) {
+        public <T> T reStore(UUID id, Class<T> clazz) {
             System.out.println("Restoring something by id = " + id);
             return (T) map.get(id);
         }
     };
 
     @Test
-    public void testSwapSingleValue() {
+    public void testSwapSingleValue() throws StoreException {
         Swap swap = new Swap(store);
 
-        Bar bar = swap.wrap(new Bar("new"), Bar.class);
+        Bar bar = swap.wrap(new Bar("new"), Bar.class).get();
 
         bar.change("old");
         bar.change("too old");
@@ -98,8 +99,8 @@ public class SwapTest {
         set.add(new Bar("3"));
 
         set.iterator().next().change("5");
-        
-        
+
+
 
     }
 }

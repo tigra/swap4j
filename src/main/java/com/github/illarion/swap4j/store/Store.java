@@ -10,10 +10,10 @@ import java.util.UUID;
  *
  * @author shaman
  */
-public interface StoreService {
+public interface Store {
     
-    public<T> void store(T t, UUID id);
+    public<T> void store(UUID id, T t) throws StoreException;
     
-    public<T> T reStore(UUID id);
+    public<T> T reStore(UUID id, Class<T> clazz) throws StoreException;
     
 }

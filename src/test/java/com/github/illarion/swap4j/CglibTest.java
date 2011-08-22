@@ -9,6 +9,7 @@ import net.sf.cglib.proxy.Callback;
 import net.sf.cglib.proxy.Enhancer;
 import net.sf.cglib.proxy.MethodInterceptor;
 import net.sf.cglib.proxy.MethodProxy;
+import org.junit.Ignore;
 import org.junit.Test;
 import static org.junit.Assert.*;
 
@@ -16,6 +17,7 @@ import static org.junit.Assert.*;
  *
  * @author shaman
  */
+@Ignore("Not a test")
 public class CglibTest {
 
     public static class Foo {

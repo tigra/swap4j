@@ -4,8 +4,11 @@
  */
 package com.github.illarion.swap4j.swap;
 
+import com.github.illarion.swap4j.store.StoreException;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /**
  *
@@ -23,8 +26,14 @@ class ProxyList<T> extends ArrayList<T> {
 
     @Override
     public boolean add(T e) {
-        T wrapped = swap.wrap(e, clazz);
-        return super.add(wrapped);
+        T wrapped = null;
+        try {
+            wrapped = swap.wrap(e, clazz).get();
+            return super.add(wrapped);
+        } catch (StoreException ex) {
+            Logger.getLogger(ProxyList.class.getName()).log(Level.SEVERE, null, ex);
+        }
+        return false;
     }
 
     @Override
