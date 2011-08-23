@@ -41,6 +41,12 @@ public class StoreSingleObjectTest {
             this.nestedFoo = nestedFoo;
         }
 
+        public String getBar() {
+            return bar;
+        }
+        
+        
+
         @Override
         public boolean equals(Object obj) {
             if (obj == null) {
@@ -62,47 +68,44 @@ public class StoreSingleObjectTest {
             hash = 61 * hash + (this.bar != null ? this.bar.hashCode() : 0);
             return hash;
         }
+
+        public Foo getNestedFoo() {
+            return nestedFoo;
+        }
+        
+        
     }
     private Store store;
+    private Swap swap;
+    
     @Rule
     public TemporaryFolder testFolder = new TemporaryFolder();
 
     @Before
     public void setUp() throws Exception {
         store = new SimpleStore(testFolder.newFolder("temp"));
+        swap = new Swap(store);
     }
 
     @Test
-    public void testStoreRestore() throws Exception {
-        Foo foo = new Foo("1", null);
-        UUID id = UUID.randomUUID();
-
-        store.store(id, foo);
-
-        Foo baz = store.reStore(id, Foo.class);
-
-        assertEquals(foo, baz);
+    public void testStoreRestoreSingleObject() throws Exception {
+        
+        Foo foo = swap.wrap(new Foo("1", null), Foo.class);
+        
+        assertEquals("1", foo.getBar());
     }
 
     @Test
-    public void testStoreRestoreObjectWithCglibProxy() throws Exception {
-        Swap swap = new Swap(store);
-
+    public void testStoreRestoreNestedObject() throws Exception {
         Foo nested = swap.wrap(new Foo("2", null), Foo.class);
 
-        Foo foo = new Foo("1", nested);
+        Foo foo = swap.wrap(new Foo("1", nested), Foo.class);
 
-        UUID id = UUID.randomUUID();
-
-        store.store(id, foo);
-
-        Foo baz = store.reStore(id, Foo.class);
-
-        assertEquals(foo, baz);
+        Foo nestedActual = foo.getNestedFoo();
         
-        Foo nestedActual = baz.nestedFoo;
+        assertNotNull(nestedActual);
         
-        assertEquals("2", nestedActual.bar);
+        assertEquals("2", nestedActual.getBar());
         
 
     }
