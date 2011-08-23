@@ -7,6 +7,7 @@ package com.github.illarion.swap4j.store.simplegsonstore;
 import com.github.illarion.swap4j.store.Store;
 import com.github.illarion.swap4j.store.StoreException;
 import com.github.illarion.swap4j.swap.Proxy;
+import com.github.illarion.swap4j.swap.SwapPowered;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import java.io.BufferedInputStream;
@@ -49,7 +50,7 @@ public class SimpleStore implements Store {
         PrintStream w = null;
         try {
             w = getOutputStream(id);
-            Gson gson = new GsonBuilder().registerTypeAdapter(Proxy.class, new ProxyAdapter(this, t.getClass())).create();
+            Gson gson = makeGson(t.getClass());
             String serialized = gson.toJson(t);
             w.println(serialized);
         } finally {
@@ -59,6 +60,10 @@ public class SimpleStore implements Store {
         }
     }
 
+    private <T> Gson makeGson(Class<T> clazz) {
+        return new GsonBuilder().registerTypeAdapter(SwapPowered.class, new SwapAdapter(this, clazz)).create();
+    }
+
     @Override
     public <T> T reStore(UUID id, Class<T> clazz) throws StoreException {
 
@@ -66,7 +71,7 @@ public class SimpleStore implements Store {
         try {
             in = getInputStream(id);
             String readLine = in.readLine();
-            Gson gson = new GsonBuilder().registerTypeAdapter(Proxy.class, new ProxyAdapter(this, clazz)).create();
+            Gson gson = makeGson(clazz);
             return (T) gson.fromJson(readLine, clazz);
 
         } catch (IOException e) {

@@ -28,7 +28,7 @@ class ProxyList<T> extends ArrayList<T> {
     public boolean add(T e) {
         T wrapped = null;
         try {
-            wrapped = swap.wrap(e, clazz).get();
+            wrapped = swap.wrap(e, clazz);
             return super.add(wrapped);
         } catch (StoreException ex) {
             Logger.getLogger(ProxyList.class.getName()).log(Level.SEVERE, null, ex);

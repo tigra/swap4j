@@ -6,6 +6,7 @@ package com.github.illarion.swap4j.swap;
 
 import com.github.illarion.swap4j.store.Store;
 import com.github.illarion.swap4j.store.StoreException;
+import com.github.illarion.swap4j.swap.SwapPowered;
 import java.lang.reflect.Method;
 import java.util.UUID;
 import net.sf.cglib.proxy.Callback;
@@ -66,6 +67,7 @@ public class Proxy<T> {
             Enhancer enhancer = new Enhancer();
             enhancer.setCallback(callback);
             enhancer.setSuperclass(clazz);
+            enhancer.setInterfaces(new Class[]{SwapPowered.class});
 
             return (T) enhancer.create();
         }
@@ -95,6 +97,11 @@ public class Proxy<T> {
                 return mp.invokeSuper(o, os);
             }
 
+            if (method.getName().equals("getRealObject")) {
+                load();
+                return t;
+            }
+
             synchronized (id) {
                 load();
                 if (null == t) {
@@ -104,6 +111,8 @@ public class Proxy<T> {
                 unload();
                 return result;
             }
+
+
 
 
         }

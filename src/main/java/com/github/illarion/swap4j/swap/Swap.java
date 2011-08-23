@@ -21,8 +21,8 @@ public class Swap {
         this.store = store;
     }
 
-    public <T> Proxy<T> wrap(T instance, Class<T> clazz) throws StoreException {
-        return new Proxy<T>(store, instance, clazz);
+    public <T> T wrap(T instance, Class<T> clazz) throws StoreException {
+        return new Proxy<T>(store, instance, clazz).get();
     }
     
     public <T> List<T> newWrapList(Class<T> clazz){

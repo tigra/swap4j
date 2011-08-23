@@ -26,7 +26,7 @@ public class StoreSingleObjectTest {
     public static class Foo {
 
         private String bar;
-        private Proxy<Foo> nestedFoo;
+        private Foo nestedFoo;
 
         public Foo() {
         }
@@ -36,7 +36,7 @@ public class StoreSingleObjectTest {
         }
 
 
-        public Foo(String bar, Proxy<Foo> nestedFoo) {
+        public Foo(String bar, Foo nestedFoo) {
             this.bar = bar;
             this.nestedFoo = nestedFoo;
         }
@@ -88,7 +88,7 @@ public class StoreSingleObjectTest {
     public void testStoreRestoreObjectWithCglibProxy() throws Exception {
         Swap swap = new Swap(store);
 
-        Proxy<Foo> nested = swap.wrap(new Foo("2", null), Foo.class);
+        Foo nested = swap.wrap(new Foo("2", null), Foo.class);
 
         Foo foo = new Foo("1", nested);
 
@@ -100,7 +100,9 @@ public class StoreSingleObjectTest {
 
         assertEquals(foo, baz);
         
-        Foo get = baz.nestedFoo.get();
+        Foo nestedActual = baz.nestedFoo;
+        
+        assertEquals("2", nestedActual.bar);
         
 
     }

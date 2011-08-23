@@ -66,7 +66,7 @@ public class SimpleTest {
     public void testSwapSingleValue() throws StoreException {
         Swap swap = new Swap(store);
 
-        Bar bar = swap.wrap(new Bar("new"), Bar.class).get();
+        Bar bar = swap.wrap(new Bar("new"), Bar.class);
 
         bar.change("old");
         bar.change("too old");

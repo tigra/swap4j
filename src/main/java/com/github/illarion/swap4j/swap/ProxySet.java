@@ -28,7 +28,7 @@ class ProxySet<T> extends HashSet<T> {
     public boolean add(T e) {
         T wrapped;
         try {
-            wrapped = swap.wrap(e, clazz).get();
+            wrapped = swap.wrap(e, clazz);
             return super.add(wrapped);
         } catch (StoreException ex) {
             Logger.getLogger(ProxySet.class.getName()).log(Level.SEVERE, null, ex);
