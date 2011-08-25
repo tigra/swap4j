@@ -44,6 +44,14 @@ public class StoreSingleObjectTest {
         public String getBar() {
             return bar;
         }
+
+        @Override
+        public String toString() {
+            return "Foo{" + "bar=" + bar + ", nestedFoo=" + nestedFoo + '}';
+        }
+
+        
+        
         
         
 
@@ -106,7 +114,11 @@ public class StoreSingleObjectTest {
         assertNotNull(nestedActual);
         
         assertEquals("2", nestedActual.getBar());
-        
-
+    }
+    
+    @Test
+    public void storeTest() throws Exception {
+        Foo foo = swap.wrap(new Foo("1", null), Foo.class);
+        store.store(UUID.fromString("00000000-0000-0000-0000-000000000000"), foo);
     }
 }
