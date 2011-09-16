@@ -14,7 +14,7 @@ import java.util.logging.Logger;
  *
  * @author shaman
  */
-class ProxyList<T> extends ArrayList<T> {
+public class ProxyList<T> extends ArrayList<T> {
 
     private final Swap swap;
     private final Class<T> clazz;

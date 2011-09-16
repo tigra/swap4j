@@ -7,9 +7,10 @@ package com.github.illarion.swap4j.store.simplegsonstore;
 import com.github.illarion.swap4j.store.Store;
 import com.github.illarion.swap4j.store.StoreException;
 import com.github.illarion.swap4j.swap.Proxy;
-import com.github.illarion.swap4j.swap.SwapCallback;
+import com.github.illarion.swap4j.swap.ProxyUtils;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
+
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -17,24 +18,18 @@ import java.io.FileOutputStream;
 import java.io.FileReader;
 import java.io.IOException;
 import java.io.PrintStream;
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
 import java.util.UUID;
-import java.util.logging.Level;
-import java.util.logging.Logger;
-import net.sf.cglib.asm.Type;
-import net.sf.cglib.proxy.Callback;
-import net.sf.cglib.proxy.CallbackHelper;
+
 import net.sf.cglib.proxy.Enhancer;
-import sun.font.Type1Font;
+import org.apache.commons.io.IOUtils;
 
 /**
- *
  * @author shaman
  */
 public class SimpleStore implements Store {
 
     private final File dir;
+    private Gson gson = new GsonBuilder().create();
 
     public SimpleStore(File dir) throws StoreException {
         this.dir = dir;
@@ -50,83 +45,65 @@ public class SimpleStore implements Store {
 
     @Override
     public <T> void store(UUID id, T t) throws StoreException {
-
         PrintStream w = null;
         try {
             System.out.println("Storing " + id + " " + t.toString());
             w = getOutputStream(id);
 
-
-
-
-            if (Enhancer.isEnhanced(t.getClass())) {
-                Method[] methods = t.getClass().getMethods();
-
-                try {
-                    Method getCallback = t.getClass().getMethod("getCallbacks", new Class[]{});
-
-                    Callback[] callbacks = (Callback[]) getCallback.invoke(t, new Object[]{});
-
-                    Callback callback = callbacks[0];
-
-                    Method getProxy = callback.getClass().getMethod("getProxy", new Class[]{});
-
-                    Proxy proxy = (Proxy) getProxy.invoke(callback, new Object[]{});
-
-                    store(id, proxy);
-                    return;
-
-                    
-                } catch (NoSuchMethodException ex) {
-                    Logger.getLogger(SimpleStore.class.getName()).log(Level.SEVERE, null, ex);
-                } catch (SecurityException ex) {
-                    Logger.getLogger(SimpleStore.class.getName()).log(Level.SEVERE, null, ex);
-                } catch (IllegalAccessException ex) {
-                    Logger.getLogger(SimpleStore.class.getName()).log(Level.SEVERE, null, ex);
-                } catch (InvocationTargetException ex) {
-                    Logger.getLogger(SimpleStore.class.getName()).log(Level.SEVERE, null, ex);
-                }
-
-
+            if (tryToStoreProxy(id, t)) {
+                return;
             }
-
-            Gson gson = makeGson(t.getClass());
-
 
             String serialized = gson.toJson(t);
             w.println(serialized);
             //System.out.println(serialized);
         } finally {
-            if (null != w) {
-                w.close();
-            }
+            IOUtils.closeQuietly(w);
         }
     }
 
-    private <T> Gson makeGson(Class<T> clazz) {
-        return new GsonBuilder().create();
+    /**
+     * Tries to store proxy.
+     *
+     * If a given object is enhanced with our enhancer
+     * (which enables it to unload when references are lost) and inside it is a Proxy...
+     * then we try to extract real object from proxy and store it.
+     *
+     * If this succeeds, returns <code>true</code>.
+     *
+     * If object is not enhanced or is not a proxy, it does not save it
+     * and returns <code>false</code>
+     *
+     * @param id id to associate the object with
+     * @param object object to store
+     * @param <T> type of an object
+     * @return <code>true</code> if this is enhanced proxy and save succeeds, <code>false</code> otherwise
+     * @throws StoreException in case of storage error
+     */
+    private <T> boolean tryToStoreProxy(UUID id, Object object) throws StoreException {
+        if (Enhancer.isEnhanced(object.getClass())) {
+            Proxy<T> proxy = ProxyUtils.getProxy(object);
+            if (proxy != null) {
+                store(id, proxy);
+                return true;
+            }
+        }
+        return false;
     }
+
 
     @Override
     public <T> T reStore(UUID id, Class<T> clazz) throws StoreException {
-        System.out.println("ReStorg " + id);
+        System.out.println("ReStore " + id);
         BufferedReader in = null;
         try {
             in = getInputStream(id);
             String readLine = in.readLine();
-            Gson gson = makeGson(clazz);
-            return (T) gson.fromJson(readLine, clazz);
-
+            return gson.fromJson(readLine, clazz);
         } catch (IOException e) {
             throw new StoreException(e);
         } finally {
-            if (null != in) {
-                try {
-                    in.close();
-                } catch (IOException ex) {
-                    throw new StoreException(ex);
-                }
-            }
+            IOUtils.closeQuietly(in);
         }
     }
 
@@ -135,12 +112,10 @@ public class SimpleStore implements Store {
             if (!dir.exists()) {
                 dir.mkdir();
             }
-
             return new PrintStream(new FileOutputStream(new File(dir, id.toString())));
         } catch (IOException e) {
             throw new StoreException(e);
         }
-
     }
 
     private BufferedReader getInputStream(UUID id) throws StoreException {

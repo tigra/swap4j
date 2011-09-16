@@ -15,8 +15,8 @@ import net.sf.cglib.proxy.MethodProxy;
 public class SwapCallback<T> implements MethodInterceptor {
     Proxy<T> proxy;
 
-    public SwapCallback(Proxy<T> callback) {
-        this.proxy = callback;
+    public SwapCallback(Proxy<T> proxy) {
+        this.proxy = proxy;
     }
 
     public Proxy<T> getProxy() {
@@ -26,21 +26,22 @@ public class SwapCallback<T> implements MethodInterceptor {
     
 
     @Override
-    public Object intercept(Object o, Method method, Object[] os, MethodProxy mp) throws Throwable {
+    public Object intercept(Object target, Method method, Object[] params, MethodProxy mp) throws Throwable {
         if (method.getName().equals("finalize")) {
             proxy.unload();
-            return mp.invokeSuper(o, os);
+            return mp.invokeSuper(target, params);
         }
         if (method.getName().equals("getRealObject")) {
             proxy.load();
-            return proxy.t;
+            return proxy.realObject;
         }
         synchronized (proxy.id) {
             proxy.load();
-            if (null == proxy.t) {
-                throw new NullPointerException("t not loaded!");
+            if (null == proxy.realObject) {
+                throw new NullPointerException("realObject not loaded!");
+                // TODO Better throw our runtime exception (?)
             }
-            Object result = mp.invoke(proxy.t, os);
+            Object result = mp.invoke(proxy.realObject, params);
             proxy.unload();
             return result;
         }

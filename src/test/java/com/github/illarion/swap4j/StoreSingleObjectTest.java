@@ -4,18 +4,19 @@
  */
 package com.github.illarion.swap4j;
 
-import com.github.illarion.swap4j.swap.Proxy;
+import com.github.illarion.swap4j.store.StoreException;
 import org.junit.rules.TemporaryFolder;
 import com.github.illarion.swap4j.store.simplegsonstore.SimpleStore;
 import com.github.illarion.swap4j.store.Store;
 import com.github.illarion.swap4j.swap.Swap;
-import java.io.File;
+
 import java.util.UUID;
-import org.junit.After;
+
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
 
 /**
  *
@@ -115,6 +116,26 @@ public class StoreSingleObjectTest {
         
         assertEquals("2", nestedActual.getBar());
     }
+
+    @Test
+    public void testNestedList() throws StoreException {
+        Baz root = swap.wrap(new Baz(swap, "/"), Baz.class);
+        Baz c1 = new Baz(swap, "c1");
+        Baz c2 = new Baz(swap, "c2");
+        Baz c3 = new Baz(swap, "c3");
+        Baz c11 = new Baz(swap, "c11");
+        Baz c12 = new Baz(swap, "c12");
+        root.add(c1);
+        root.add(c2);
+        root.add(c3);
+        c1.add(c11);
+        c1.add(c12);
+
+        assertEquals(3, root.getChildren().size());
+        assertEquals(2, root.getChildren().get(0).getChildren().size());
+    }
+
+
     
     @Test
     public void storeTest() throws Exception {

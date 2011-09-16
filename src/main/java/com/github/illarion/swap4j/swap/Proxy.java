@@ -16,9 +16,9 @@ import net.sf.cglib.proxy.Enhancer;
  */
 public class Proxy<T> {
 
-    UUID id = UUID.randomUUID();
+    UUID id = UUID.randomUUID(); // TODO Make sure they don't repeat
     transient final Store store;
-    volatile T t;
+    volatile T realObject;
     transient final Class<T> clazz;
     
     transient final Callback callback = new SwapCallback(this);
@@ -28,38 +28,36 @@ public class Proxy<T> {
         this.store = store;
         this.clazz = clazz;
 
-        this.t = null;
-
+        this.realObject = null;
     }
 
-    public Proxy(Store store, T t, Class<T> clazz) throws StoreException {
+    public Proxy(Store store, T realObject, Class<T> clazz) throws StoreException {
         this.id = UUID.randomUUID();
         this.store = store;
-        this.t = t;
+        this.realObject = realObject;
         this.clazz = clazz;
         unload();
     }
-    
-    
+
 
     void unload() throws StoreException {
         synchronized (id) {
-            store.store(id, t);
-            t = null;
+            store.store(id, realObject);
+            realObject = null;
         }
     }
 
     void load() throws StoreException {
         synchronized (id) {
-            if (null == t) {
-                t = store.reStore(id, clazz);
+            if (null == realObject) {
+                realObject = store.reStore(id, clazz);
             }
         }
     }
 
     public T get() throws StoreException {
         synchronized (id) {
-            if (null == t) {
+            if (null == realObject) {
                 load();
             }
 
@@ -69,6 +67,7 @@ public class Proxy<T> {
             enhancer.setInterfaces(new Class[]{SwapPowered.class});
 
             return (T) enhancer.create();
+            // TODO Try to use just one callback for all objects, store Proxy reference in wrapped object itself? 
         }
 
     }
