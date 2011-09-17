@@ -48,6 +48,7 @@ public class SimpleTest {
     private Store store = new Store() {
 
         private Map<UUID, Object> map = new HashMap<UUID, Object>();
+        public UUIDGenerator uuidGenerator = new UUIDGenerator();
 
         @Override
         public <T> void store(UUID id, T t) {
@@ -59,6 +60,10 @@ public class SimpleTest {
         public <T> T reStore(UUID id, Class<T> clazz) {
 //            System.out.println("Restoring something by id = " + id);
             return (T) map.get(id);
+        }
+
+        public UUID createUUID() {
+            return uuidGenerator.createUUID();
         }
     };
 

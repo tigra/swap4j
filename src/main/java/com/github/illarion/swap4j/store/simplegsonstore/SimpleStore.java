@@ -8,6 +8,7 @@ import com.github.illarion.swap4j.store.Store;
 import com.github.illarion.swap4j.store.StoreException;
 import com.github.illarion.swap4j.swap.Proxy;
 import com.github.illarion.swap4j.swap.ProxyUtils;
+import com.github.illarion.swap4j.swap.UUIDGenerator;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 
@@ -30,6 +31,7 @@ public class SimpleStore implements Store {
 
     private final File dir;
     private Gson gson = new GsonBuilder().create();
+    private UUIDGenerator uuidGenerator = new UUIDGenerator();
 
     public SimpleStore(File dir) throws StoreException {
         this.dir = dir;
@@ -124,5 +126,13 @@ public class SimpleStore implements Store {
         } catch (FileNotFoundException ex) {
             throw new StoreException(ex);
         }
+    }
+
+    public UUID createUUID() {
+        return uuidGenerator.createUUID();
+    }
+
+    public void setUuidGenerator(UUIDGenerator uuidGenerator) {
+        this.uuidGenerator = uuidGenerator;
     }
 }

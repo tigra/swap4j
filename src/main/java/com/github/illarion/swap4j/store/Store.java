@@ -32,5 +32,6 @@ public interface Store {
      * @throws StoreException
      */
     public<T> T reStore(UUID id, Class<T> clazz) throws StoreException;
-    
+
+    UUID createUUID();
 }
