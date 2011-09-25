@@ -37,12 +37,25 @@ public interface Store extends Iterable<Locator> {
      */
     public<T> T reStore(UUID id, Class<T> clazz) throws StoreException;
 
+    /**
+     * Creates unique UUID
+     * @return
+     */
     UUID createUUID();
 
-    SerializedField deserialize(UUID id);
-
+    /**
+     * Get iterator over <code>SerializedField</code>s stored in this <code>Store</code>
+     * @return iterator
+     */
     @Override
     Iterator<Locator> iterator();
 
+    /**
+     * Access <code>SerializedField</code> identified by given <code>Locator</code>.
+     * Used for testing purposes.
+     *
+     * @param locator Locator identifying the field to load
+     * @return loaded <code>SerializedField</code>
+     */
     SerializedField getSerializedField(Locator locator);
 }

@@ -4,7 +4,9 @@
  */
 package com.github.illarion.swap4j.swap;
 
+import com.github.illarion.swap4j.store.Store;
 import com.github.illarion.swap4j.store.StoreException;
+import com.github.illarion.swap4j.store.scan.ProxyListRecord;
 
 import java.util.*;
 import java.util.logging.Level;
@@ -19,12 +21,34 @@ public class ProxyList<T> implements List<T>, Locatable<T> {
     private List<T> list = new ArrayList<T>();
 
     private final Swap swap;
+    private Store store;
 
     public Class<T> getClazz() {
         return clazz;
     }
 
     private final Class<T> clazz;
+
+    public ProxyList(Swap swap, Class<T> clazz, UUID id, ProxyListRecord proxyListRecord) throws StoreException {
+        this.swap = swap;
+        this.clazz = clazz;
+        this.id = id;
+        this.store = swap.getStore();
+        createProxies(proxyListRecord);
+    }
+
+    private void createProxies(ProxyListRecord proxyListRecord) throws StoreException {
+        for (Object listElementId : proxyListRecord) {
+//            list.add(new Proxy((UUID)listElementId, swap.getStore(), clazz));
+//            list.add(swap.wrap())
+            list.add(emptyProxy((UUID)listElementId, clazz));
+        }
+    }
+
+    private T emptyProxy(UUID uuid, Class<T> clazz) throws StoreException {
+        return (T)new Proxy(uuid, store, clazz).get();
+    }
+
 
     private static final Logger logger = Logger.getLogger(ProxyList.class.getName());
 
@@ -33,7 +57,8 @@ public class ProxyList<T> implements List<T>, Locatable<T> {
     public ProxyList(Swap swap, Class<T> clazz) throws StoreException {
         this.swap = swap;
         this.clazz = clazz;
-        this.id = swap.getStore().createUUID();
+        this.store = swap.getStore();
+        this.id = store.createUUID();
         unload();
     }
 
@@ -41,6 +66,7 @@ public class ProxyList<T> implements List<T>, Locatable<T> {
         this.clazz = clazz;
         this.id = id;
         this.swap = swap;
+        this.store = swap.getStore();
         unload();
     }
 

@@ -1,5 +1,6 @@
 package com.github.illarion.swap4j.store.scan;
 
+import com.github.illarion.swap4j.swap.Swap;
 import com.github.illarion.swap4j.swap.UUIDGenerator;
 
 import java.util.Iterator;
@@ -14,13 +15,8 @@ import java.util.UUID;
 * @author Alexey Tigarev
 */
 public class TestObjectScannerStore extends ObjectScannerStore {
-    public TestObjectScannerStore(ObjectSerializer writer, UUIDGenerator uuidGenerator) {
-        super(writer, uuidGenerator);
-    }
-
-    @Override
-    public SerializedField deserialize(UUID id) {
-        return writer.read(new Locator(id, "."));
+    public TestObjectScannerStore(Swap swap, ObjectSerializer writer, UUIDGenerator uuidGenerator) {
+        super(writer, uuidGenerator, swap);
     }
 
     @Override

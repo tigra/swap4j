@@ -23,6 +23,7 @@ import static org.junit.Assert.*;
  * @author shaman
  */
 public class SimpleTest {
+    private Swap swap;
 
     public static class Bar {
 
@@ -119,13 +120,12 @@ public class SimpleTest {
 
     @Before
     public void setUp() {
-        store = new TestObjectScannerStore(new MapWriter(), new UUIDGenerator());
+        store = new TestObjectScannerStore(swap, new MapWriter(), new UUIDGenerator());
+        swap = new Swap(store);
     }
 
     @Test
     public void testNestedList() throws StoreException {
-        Swap swap = new Swap(store);
-
         Baz root = swap.wrap(new Baz(swap, "/"), Baz.class);
         Baz c1 = new Baz(swap, "c1");
         Baz c2 = new Baz(swap, "c2");

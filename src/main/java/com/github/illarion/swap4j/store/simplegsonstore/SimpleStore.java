@@ -140,11 +140,6 @@ public class SimpleStore implements Store {
     }
 
     @Override
-    public SerializedField deserialize(UUID id) {
-        throw new UnsupportedOperationException("SimpleStore.deserialize()"); // TODO Implement this method
-    }
-
-    @Override
     public Iterator<Locator> iterator() {
         throw new UnsupportedOperationException(""); // TODO Implement this method
     }

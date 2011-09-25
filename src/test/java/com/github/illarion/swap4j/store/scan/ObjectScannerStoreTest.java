@@ -40,8 +40,9 @@ public class ObjectScannerStoreTest {
     @Before
     public void setUp() {
         uuidGenerator = context.mock(UUIDGenerator.class);
-        store = new TestObjectScannerStore(new MapWriter(), uuidGenerator);
+        store = new TestObjectScannerStore(null, new MapWriter(), uuidGenerator);
         swap = new Swap(store);
+        store.setSwap(swap);
     }
 
 
@@ -109,7 +110,13 @@ public class ObjectScannerStoreTest {
 
     @Test
     public void testProxyListRestore() throws StoreException {
-        initializeStore(obj(0, ".[", null, Dummy.class, TYPE.PROXY_LIST),
+        // setup
+        context.checking(new UUIDSequenceExpectations(uuidGenerator, context) {{
+            expectSequentalUUIDs(0);
+        }});
+
+        initializeStore(obj(0, ".[", new ProxyListRecord(
+                    new UUID(0,1), new UUID(0,2), new UUID(0,3)), Dummy.class, TYPE.PROXY_LIST),
                 obj(1, ".", new Dummy("one"), Dummy.class, TYPE.PROXIED_VALUE),
                 obj(1, "./field", "one", String.class, TYPE.PRIMITIVE_FIELD),
                 obj(2, ".", new Dummy("two"), Dummy.class, TYPE.PROXIED_VALUE),
@@ -118,6 +125,12 @@ public class ObjectScannerStoreTest {
                 obj(3, "./field", "three", String.class, TYPE.PRIMITIVE_FIELD));
 
         ProxyList list = store.reStore(new UUID(0, 0), ProxyList.class);
+
+        assertNotNull(list);
+        assertEquals(3, list.size());
+        assertEquals(new Dummy("one"), list.get(0));
+        assertEquals(new Dummy("two"), list.get(1));
+        assertEquals(new Dummy("three"), list.get(2));
     }
 
     /**

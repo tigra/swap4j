@@ -104,8 +104,9 @@ public class StoreSingleObjectTest {
     @Before
     public void setUp() throws Exception {
 //        store = new SimpleStore(testFolder.newFolder("temp"));
-        store = new TestObjectScannerStore(new MapWriter(), new UUIDGenerator());
+        store = new TestObjectScannerStore(null, new MapWriter(), new UUIDGenerator());
         swap = new Swap(store);
+        ((TestObjectScannerStore)store).setSwap(swap);
     }
 
     @Test

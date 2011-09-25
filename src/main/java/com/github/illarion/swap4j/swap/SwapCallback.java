@@ -26,13 +26,17 @@ public class SwapCallback<T> implements MethodInterceptor {
 
     @Override
     public Object intercept(Object target, Method method, Object[] params, MethodProxy mp) throws Throwable {
-        if (method.getName().equals("finalize")) {
+        final String methodName = method.getName();
+        if ("finalize".equals(methodName)) {
             proxy.unload();
             return mp.invokeSuper(target, params);
         }
-        if (method.getName().equals("getRealObject")) {
+        if ("getRealObject".equals(methodName)) {
             proxy.load();
             return proxy.realObject;
+        }
+        if ("toString".equals(methodName)) {
+            return "E{" + proxy.toString() + "}";
         }
         synchronized (proxy.id) {
             try {

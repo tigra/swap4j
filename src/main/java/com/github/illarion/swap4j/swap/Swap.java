@@ -23,7 +23,7 @@ public class Swap {
 
     public <T> T wrap(T instance, Class<T> clazz) throws StoreException {
         return new Proxy<T>(store, instance, clazz).get();  
-        // TODO Should get be in Proxy??
+        // TODO Should get() be in Proxy??
     }
     
     public <T> List<T> newWrapList(Class<T> clazz) throws StoreException {

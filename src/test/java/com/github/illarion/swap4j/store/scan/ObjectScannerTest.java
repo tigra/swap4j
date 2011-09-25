@@ -36,68 +36,17 @@ public class ObjectScannerTest {
         setImposteriser(ClassImposteriser.INSTANCE);
     }};
 
-    @Rule
-    public TemporaryFolder testFolder = new TemporaryFolder();
-
     private TestObjectScannerStore store;
     private Swap swap;
     private ObjectSerializer objectSerializer;
     private ObjectScanner scanner;
     private UUIDGenerator uuidGenerator = new UUIDGenerator();
 
-    class TestStore implements Store {
-        private UUIDGenerator uuidGenerator;
-
-        private Map<UUID, Object> map = new HashMap<UUID, Object>();
-
-        TestStore(UUIDGenerator uuidGenerator) {
-            this.uuidGenerator = uuidGenerator;
-        }
-
-        @Override
-        public UUID createUUID() {
-            return uuidGenerator.createUUID();
-        }
-
-        @Override
-        public <T> void store(UUID id, T object) throws StoreException {
-            map.put(id, object);
-        }
-
-        @Override
-        public <T> T reStore(UUID id, Class<T> clazz) throws StoreException {
-            try {
-                return (T) map.get(id);
-            } catch (ClassCastException cce) {
-                throw new StoreException("TestStore.reStore(" + id + ", " + clazz, cce);
-            }
-        }
-
-        public void setUuidGenerator(UUIDGenerator uuidGenerator) {
-            this.uuidGenerator = uuidGenerator;
-        }
-
-        @Override
-        public SerializedField deserialize(UUID id) {
-            throw new UnsupportedOperationException("deserialize()");
-        }
-
-        @Override
-        public SerializedField getSerializedField(Locator locator) {
-            throw new UnsupportedOperationException(""); // TODO Implement this method
-        }
-
-        @Override
-        public Iterator<Locator> iterator() {
-            throw new UnsupportedOperationException(""); // TODO Implement this method
-        }
-    }
-
     @Before
     public void setUp() throws StoreException {
-//        store = new SimpleStore(testFolder.newFolder("temp"));
-        store = new TestObjectScannerStore(new MapWriter(), uuidGenerator);
+        store = new TestObjectScannerStore(null, new MapWriter(), uuidGenerator);
         swap = new Swap(store);
+        ((TestObjectScannerStore)store).setSwap(swap);
 
         objectSerializer = context.mock(ObjectSerializer.class);
         scanner = new ObjectScanner(objectSerializer);
