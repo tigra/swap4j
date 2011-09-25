@@ -6,6 +6,8 @@ package com.github.illarion.swap4j.store.simplegsonstore;
 
 import com.github.illarion.swap4j.store.Store;
 import com.github.illarion.swap4j.store.StoreException;
+import com.github.illarion.swap4j.store.scan.Locator;
+import com.github.illarion.swap4j.store.scan.SerializedField;
 import com.github.illarion.swap4j.swap.Proxy;
 import com.github.illarion.swap4j.swap.ProxyUtils;
 import com.github.illarion.swap4j.swap.UUIDGenerator;
@@ -19,6 +21,7 @@ import java.io.FileOutputStream;
 import java.io.FileReader;
 import java.io.IOException;
 import java.io.PrintStream;
+import java.util.Iterator;
 import java.util.UUID;
 
 import net.sf.cglib.proxy.Enhancer;
@@ -134,5 +137,20 @@ public class SimpleStore implements Store {
 
     public void setUuidGenerator(UUIDGenerator uuidGenerator) {
         this.uuidGenerator = uuidGenerator;
+    }
+
+    @Override
+    public SerializedField deserialize(UUID id) {
+        throw new UnsupportedOperationException("SimpleStore.deserialize()"); // TODO Implement this method
+    }
+
+    @Override
+    public Iterator<Locator> iterator() {
+        throw new UnsupportedOperationException(""); // TODO Implement this method
+    }
+
+    @Override
+    public SerializedField getSerializedField(Locator locator) {
+        throw new UnsupportedOperationException(""); // TODO Implement this method
     }
 }

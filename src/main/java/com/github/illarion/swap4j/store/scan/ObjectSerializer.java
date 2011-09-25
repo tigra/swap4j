@@ -1,5 +1,8 @@
 package com.github.illarion.swap4j.store.scan;
 
+import java.util.Iterator;
+import java.util.UUID;
+
 /**
  * TODO Describe class
  * <p/>
@@ -9,7 +12,15 @@ package com.github.illarion.swap4j.store.scan;
  * @author Alexey Tigarev
  */
 public class ObjectSerializer {
-    public void serialize(PreSerialized representation) {
+    public void serialize(SerializedField representation) {
         System.out.println("Scan: " + representation);
+    }
+
+    public SerializedField read(Locator locator) {
+        throw new UnsupportedOperationException(""); // TODO Implement this method
+    }
+
+    public Iterator<Locator> iterateStoredObjects() {
+        throw new UnsupportedOperationException(""); // TODO Implement this method
     }
 }

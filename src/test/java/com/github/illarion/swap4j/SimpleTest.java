@@ -5,13 +5,16 @@
 package com.github.illarion.swap4j;
 
 import com.github.illarion.swap4j.store.StoreException;
-import java.util.Set;
-import java.util.List;
-import java.util.Map;
-import java.util.HashMap;
+
+import java.util.*;
+
 import com.github.illarion.swap4j.store.Store;
+import com.github.illarion.swap4j.store.scan.Locator;
+import com.github.illarion.swap4j.store.scan.MapWriter;
+import com.github.illarion.swap4j.store.scan.SerializedField;
+import com.github.illarion.swap4j.store.scan.TestObjectScannerStore;
 import com.github.illarion.swap4j.swap.*;
-import java.util.UUID;
+import org.junit.Before;
 import org.junit.Test;
 import static org.junit.Assert.*;
 
@@ -23,7 +26,7 @@ public class SimpleTest {
 
     public static class Bar {
 
-        private String value = "new";
+        String value = "new";
 
         public Bar(String value) {
             this.value = value;
@@ -45,27 +48,48 @@ public class SimpleTest {
             return "Bar{" + "value=" + value + '}';
         }
     }
-    private Store store = new Store() {
 
-        private Map<UUID, Object> map = new HashMap<UUID, Object>();
-        public UUIDGenerator uuidGenerator = new UUIDGenerator();
-
-        @Override
-        public <T> void store(UUID id, T t) {
-//            System.out.println("Storing " + t.toString());
-            map.put(id, t);
-        }
-
-        @Override
-        public <T> T reStore(UUID id, Class<T> clazz) {
-//            System.out.println("Restoring something by id = " + id);
-            return (T) map.get(id);
-        }
-
-        public UUID createUUID() {
-            return uuidGenerator.createUUID();
-        }
-    };
+    private Store store;
+//    private Store store = new Store() {
+//
+//        private Map<UUID, Object> map = new HashMap<UUID, Object>();
+//        public UUIDGenerator uuidGenerator = new UUIDGenerator();
+//
+//        @Override
+//        public SerializedField getSerializedField(Locator locator) {
+//            throw new UnsupportedOperationException(""); // TODO Implement this method
+//        }
+//
+//        @Override
+//        public <T> void store(UUID id, T t) {
+////            System.out.println("Storing " + t.toString());
+//            map.put(id, t);
+//        }
+//
+//        @Override
+//        public <T> T reStore(UUID id, Class<T> clazz) throws StoreException {
+////            System.out.println("Restoring something by id = " + id);
+//            try {
+//                return (T) map.get(id);
+//            } catch (ClassCastException cce) {
+//                throw new StoreException("SimpleTest.Store.reStore(" + id + "," + clazz, cce);
+//            }
+//        }
+//
+//        public UUID createUUID() {
+//            return uuidGenerator.createUUID();
+//        }
+//
+//        @Override
+//        public SerializedField deserialize(UUID id) {
+//            throw new UnsupportedOperationException("ST.deserialize"); // TODO Implement this method
+//        }
+//
+//        @Override
+//        public Iterator<Locator> iterator() {
+//            throw new UnsupportedOperationException(""); // TODO Implement this method
+//        }
+//    };
 
     @Test
     public void testSwapSingleValue() throws StoreException {
@@ -80,7 +104,7 @@ public class SimpleTest {
     }
 
     @Test
-    public void testSwapList() {
+    public void testSwapList() throws StoreException {
         Swap swap = new Swap(store);
 
         List<Bar> list = swap.newWrapList(Bar.class);
@@ -91,6 +115,11 @@ public class SimpleTest {
 
         list.get(1).change("5");
 
+    }
+
+    @Before
+    public void setUp() {
+        store = new TestObjectScannerStore(new MapWriter(), new UUIDGenerator());
     }
 
     @Test
@@ -115,7 +144,7 @@ public class SimpleTest {
 
 
     @Test
-    public void testBigSwapList() {
+    public void testBigSwapList() throws StoreException {
         Swap swap = new Swap(store);
         List<Bar> list = swap.newWrapList(Bar.class);
 

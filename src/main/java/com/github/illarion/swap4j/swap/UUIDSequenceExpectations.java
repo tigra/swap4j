@@ -1,5 +1,8 @@
 package com.github.illarion.swap4j.swap;
 
+import com.github.illarion.swap4j.store.scan.ObjectSerializer;
+import com.github.illarion.swap4j.store.scan.SerializedField;
+import com.github.illarion.swap4j.store.scan.TYPE;
 import org.jmock.Expectations;
 import org.jmock.Mockery;
 import org.jmock.Sequence;
@@ -13,26 +16,38 @@ import java.util.UUID;
 */
 public class UUIDSequenceExpectations extends Expectations {
     private Sequence uuidSequence;
+    private Sequence serializationSequence;
     private UUIDGenerator uuidGenerator;
+    private ObjectSerializer objectSerializer;
 
-    public UUIDSequenceExpectations(UUIDGenerator uuidGenerator, Sequence uuidSequence) {
+    public UUIDSequenceExpectations(UUIDGenerator uuidGenerator, Sequence uuidSequence, ObjectSerializer objectSerializer) {
         this.uuidGenerator = uuidGenerator;
         this.uuidSequence = uuidSequence;
+        this.objectSerializer = objectSerializer;
+    }
+
+    public UUIDSequenceExpectations(UUIDGenerator uuidGenerator, Mockery mockery) {
+        this.uuidGenerator = uuidGenerator;
+        this.uuidSequence = createSequence(mockery, "uuid");
+        this.serializationSequence = createSequence(mockery, "serialization");
     }
 
     public UUIDSequenceExpectations(Mockery mockery) {
         this.uuidGenerator = mockery.mock(UUIDGenerator.class);
-        this.uuidSequence = createSequence(mockery);
+        this.uuidSequence = createSequence(mockery, "uuid");
+        this.serializationSequence = createSequence(mockery, "serialization");
     }
 
-    private Sequence createSequence(Mockery mockery) {
-        return mockery.sequence("uuid");
-    }
 
-    public UUIDSequenceExpectations(Mockery mockery, UUIDGenerator uuidGenerator) {
+    public UUIDSequenceExpectations(Mockery mockery, UUIDGenerator uuidGenerator, ObjectSerializer objectSerializer) {
         this.uuidGenerator = uuidGenerator;
-        this.uuidSequence = createSequence(mockery);
+        this.uuidSequence = createSequence(mockery, "uuid");
+        this.objectSerializer = objectSerializer;
+        this.serializationSequence = createSequence(mockery, "serialization");
+    }
 
+    private Sequence createSequence(Mockery mockery, String name) {
+        return mockery.sequence(name);
     }
 
     public void expectUUID(String uuidStr) {
@@ -40,7 +55,11 @@ public class UUIDSequenceExpectations extends Expectations {
     }
 
     public void expectSequentalUUIDs(int count) {
-        for (int i = 0; i < count; i++) {
+        expectSequentalUUIDs(0, count);
+    }
+
+    public void expectSequentalUUIDs(int firstElement, int lastElement) {
+        for (int i = firstElement; i <= lastElement; i++) {
             expectUUID(new UUID(0, i));
         }
     }
@@ -49,5 +68,14 @@ public class UUIDSequenceExpectations extends Expectations {
         one(uuidGenerator).createUUID();
         will(returnValue(result));
         inSequence(uuidSequence);
+    }
+
+    protected <T> void expectWrite(int id, String path, T value, Class clazz, TYPE recordType) {
+        expectWrite(new UUID(0, id), path, value, clazz, recordType);
+    }
+
+    protected <T> void expectWrite(UUID id, String path, T value, Class clazz, TYPE recordType) {
+        one(objectSerializer).serialize(with(equal(new SerializedField(id, path, value, clazz, recordType))));
+        inSequence(serializationSequence);
     }
 }

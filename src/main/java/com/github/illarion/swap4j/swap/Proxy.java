@@ -6,34 +6,36 @@ package com.github.illarion.swap4j.swap;
 
 import com.github.illarion.swap4j.store.Store;
 import com.github.illarion.swap4j.store.StoreException;
+
 import java.util.UUID;
+
 import net.sf.cglib.proxy.Callback;
 import net.sf.cglib.proxy.Enhancer;
 
 /**
- *
  * @author shaman
  */
-public class Proxy<T> {
+public class Proxy<T> implements Locatable<T> {
 
-    UUID id = UUIDGenerator.createUUID(); // TODO Make sure they don't repeat
+    UUID id; // TODO Make sure they don't repeat
     transient final Store store;
     volatile T realObject;
     transient final Class<T> clazz;
-    
-    transient final Callback callback = new SwapCallback(this);
-    
-    static UUIDGenerator UUIDGenerator = new UUIDGenerator();
 
-    public Proxy(UUID id, Store store, Class<T> clazz) {
+    transient final Callback callback = new SwapCallback(this);
+    private transient int depth = 0;
+
+    public Proxy(UUID id, Store store, Class<T> clazz) throws StoreException {
+        checkIfClassIsAllowed(clazz);
         this.id = id;
         this.store = store;
         this.clazz = clazz;
-
         this.realObject = null;
     }
 
     public Proxy(Store store, T realObject, Class<T> clazz) throws StoreException {
+        checkIfClassIsAllowed(clazz);
+        checkObjectIsAllowed(realObject);
         this.id = store.createUUID();
         this.store = store;
         this.realObject = realObject;
@@ -41,14 +43,29 @@ public class Proxy<T> {
         unload();
     }
 
+    private void checkIfClassIsAllowed(Class<T> clazz) throws StoreException {
+        if (Proxy.class.isAssignableFrom(clazz)) {
+            throw new StoreException("Proxy inside Proxy is not allowed");
+        }
+    }
 
-    void unload() throws StoreException {
+    private void checkObjectIsAllowed(T object) throws StoreException {
+        if (null != object && Proxy.class.isAssignableFrom(object.getClass())) {
+            throw new StoreException("Proxy inside Proxy is not allowed");
+        }
+    }
+
+
+    @Override
+    public void unload() throws StoreException {
         synchronized (id) {
-            store.store(id, realObject);
+//            store.store(id, realObject);
+            store.store(id, this);
             realObject = null;
         }
     }
 
+    @Override
     public void load() throws StoreException {
         synchronized (id) {
             if (null == realObject) {
@@ -68,8 +85,12 @@ public class Proxy<T> {
             enhancer.setSuperclass(clazz);
             enhancer.setInterfaces(new Class[]{SwapPowered.class});
 
-            return (T) enhancer.create();
-            // TODO Try to use just one callback for all objects, store Proxy reference in wrapped object itself? 
+            // TODO Try to use just one callback for all objects, store Proxy reference in wrapped object itself?
+            try {
+                return (T) enhancer.create();
+            } catch (ClassCastException cce) {
+                throw new StoreException("Proxy.get(), id=" + id + ",clazz=" + clazz, cce);
+            }
         }
 
     }
@@ -80,10 +101,12 @@ public class Proxy<T> {
         super.finalize();
     }
 
+    @Override
     public UUID getId() {
         return id;
     }
 
+    @Override
     public boolean isLoaded() {
         return null == realObject;
     }
@@ -125,5 +148,22 @@ public class Proxy<T> {
         sb.append(", clazz=").append(clazz);
         sb.append('}');
         return sb.toString();
+    }
+
+    public Class getClazz() {
+        return clazz;
+    }
+
+    public void enterContext() {
+        depth++;
+    }
+
+    public void exitContext() {
+        depth--;
+    }
+
+
+    public boolean canUnload() {
+        return depth <= 1;
     }
 }

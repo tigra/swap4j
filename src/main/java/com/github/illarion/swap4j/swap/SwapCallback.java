@@ -5,11 +5,11 @@
 package com.github.illarion.swap4j.swap;
 
 import java.lang.reflect.Method;
+
 import net.sf.cglib.proxy.MethodInterceptor;
 import net.sf.cglib.proxy.MethodProxy;
 
 /**
- *
  * @author shaman
  */
 public class SwapCallback<T> implements MethodInterceptor {
@@ -22,8 +22,7 @@ public class SwapCallback<T> implements MethodInterceptor {
     public Proxy<T> getProxy() {
         return proxy;
     }
-    
-    
+
 
     @Override
     public Object intercept(Object target, Method method, Object[] params, MethodProxy mp) throws Throwable {
@@ -36,15 +35,23 @@ public class SwapCallback<T> implements MethodInterceptor {
             return proxy.realObject;
         }
         synchronized (proxy.id) {
-            proxy.load();
-            if (null == proxy.realObject) {
-                throw new NullPointerException("realObject not loaded!");
-                // TODO Better throw our runtime exception (?)
+            try {
+                proxy.enterContext();
+                proxy.load();
+                if (null == proxy.realObject) {
+                    throw new NullPointerException("realObject not loaded!");
+                    // TODO Better throw our runtime exception (?)
+//                return null;
+                }
+                Object result = mp.invoke(proxy.realObject, params);
+                if (proxy.canUnload()) {
+                    proxy.unload(); // should be reenterable. Nested calls don't have to do .unload() (?)
+                }
+                return result;
+            } finally {
+                proxy.exitContext();
             }
-            Object result = mp.invoke(proxy.realObject, params);
-            proxy.unload();
-            return result;
         }
     }
-    
+
 }

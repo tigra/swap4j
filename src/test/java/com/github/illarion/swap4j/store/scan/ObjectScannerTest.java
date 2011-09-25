@@ -1,8 +1,9 @@
 package com.github.illarion.swap4j.store.scan;
 
+import com.github.illarion.swap4j.store.Store;
 import com.github.illarion.swap4j.store.StoreException;
-import com.github.illarion.swap4j.store.simplegsonstore.SimpleStore;
 import com.github.illarion.swap4j.swap.*;
+import com.sun.rowset.internal.XmlReaderContentHandler;
 import org.jmock.Expectations;
 import org.jmock.Mockery;
 import org.jmock.Sequence;
@@ -16,8 +17,8 @@ import org.junit.rules.TemporaryFolder;
 import org.junit.runner.RunWith;
 
 import java.lang.reflect.Field;
-import java.util.List;
-import java.util.UUID;
+import java.util.*;
+import java.util.logging.Logger;
 
 import static junit.framework.Assert.assertEquals;
 
@@ -32,20 +33,70 @@ import static junit.framework.Assert.assertEquals;
 @RunWith(JMock.class)
 public class ObjectScannerTest {
     private Mockery context = new JUnit4Mockery() {{
-            setImposteriser(ClassImposteriser.INSTANCE);
+        setImposteriser(ClassImposteriser.INSTANCE);
     }};
 
     @Rule
     public TemporaryFolder testFolder = new TemporaryFolder();
-    
-    private SimpleStore store;
+
+    private TestObjectScannerStore store;
     private Swap swap;
     private ObjectSerializer objectSerializer;
     private ObjectScanner scanner;
+    private UUIDGenerator uuidGenerator = new UUIDGenerator();
+
+    class TestStore implements Store {
+        private UUIDGenerator uuidGenerator;
+
+        private Map<UUID, Object> map = new HashMap<UUID, Object>();
+
+        TestStore(UUIDGenerator uuidGenerator) {
+            this.uuidGenerator = uuidGenerator;
+        }
+
+        @Override
+        public UUID createUUID() {
+            return uuidGenerator.createUUID();
+        }
+
+        @Override
+        public <T> void store(UUID id, T object) throws StoreException {
+            map.put(id, object);
+        }
+
+        @Override
+        public <T> T reStore(UUID id, Class<T> clazz) throws StoreException {
+            try {
+                return (T) map.get(id);
+            } catch (ClassCastException cce) {
+                throw new StoreException("TestStore.reStore(" + id + ", " + clazz, cce);
+            }
+        }
+
+        public void setUuidGenerator(UUIDGenerator uuidGenerator) {
+            this.uuidGenerator = uuidGenerator;
+        }
+
+        @Override
+        public SerializedField deserialize(UUID id) {
+            throw new UnsupportedOperationException("deserialize()");
+        }
+
+        @Override
+        public SerializedField getSerializedField(Locator locator) {
+            throw new UnsupportedOperationException(""); // TODO Implement this method
+        }
+
+        @Override
+        public Iterator<Locator> iterator() {
+            throw new UnsupportedOperationException(""); // TODO Implement this method
+        }
+    }
 
     @Before
     public void setUp() throws StoreException {
-        store = new SimpleStore(testFolder.newFolder("temp"));
+//        store = new SimpleStore(testFolder.newFolder("temp"));
+        store = new TestObjectScannerStore(new MapWriter(), uuidGenerator);
         swap = new Swap(store);
 
         objectSerializer = context.mock(ObjectSerializer.class);
@@ -59,17 +110,6 @@ public class ObjectScannerTest {
         }});
 
         scanner.scanObject("hello");
-    }
-
-    static class Dummy {
-        String field = null;
-
-        Dummy() {
-        }
-
-        Dummy(String field) {
-            this.field = field;
-        }
     }
 
     @Test
@@ -87,10 +127,14 @@ public class ObjectScannerTest {
         final Sequence serializing = context.sequence("serializing");
         context.checking(new UUIDSequenceExpectations(context) {{
 //            expectSequentalUUIDs(4);
-            one(objectSerializer).serialize(with(equal(new SerializedField<String>(null, "./value", "a", String.class, TYPE.PRIMITIVE_FIELD)))); inSequence(serializing);
-            one(objectSerializer).serialize(with(equal(new SerializedField<Nested>(null, "./nested", new Nested("b"), Nested.class, TYPE.COMPOUND_FIELD)))); inSequence(serializing);
-            one(objectSerializer).serialize(with(equal(new SerializedField<String>(null, "./nested/value", "b", String.class, TYPE.PRIMITIVE_FIELD)))); inSequence(serializing);
-            one(objectSerializer).serialize(with(equal(new SerializedField<Nested>(null, "./nested/nested", null, Nested.class, TYPE.COMPOUND_FIELD)))); inSequence(serializing);
+            one(objectSerializer).serialize(with(equal(new SerializedField<String>(null, "./value", "a", String.class, TYPE.PRIMITIVE_FIELD))));
+            inSequence(serializing);
+            one(objectSerializer).serialize(with(equal(new SerializedField<Nested>(null, "./nested", new Nested("b"), Nested.class, TYPE.COMPOUND_FIELD))));
+            inSequence(serializing);
+            one(objectSerializer).serialize(with(equal(new SerializedField<String>(null, "./nested/value", "b", String.class, TYPE.PRIMITIVE_FIELD))));
+            inSequence(serializing);
+            one(objectSerializer).serialize(with(equal(new SerializedField<Nested>(null, "./nested/nested", null, Nested.class, TYPE.COMPOUND_FIELD))));
+            inSequence(serializing);
         }});
 
         Nested nested = new Nested("a", new Nested("b"));
@@ -100,29 +144,18 @@ public class ObjectScannerTest {
 
     @Test
     public void testNestedProxies() throws StoreException, IllegalAccessException {
-        final Sequence serializing = context.sequence("serializing");
+//        final Sequence serializing = context.sequence("serializing");
         final UUIDGenerator uuidGenerator = context.mock(UUIDGenerator.class);
 
-        context.checking(new UUIDSequenceExpectations(context, uuidGenerator) {{
-            expectSequentalUUIDs(1);
+        context.checking(new UUIDSequenceExpectations(context, uuidGenerator, objectSerializer) {{
+            expectSequentalUUIDs(0);
+            Proxy<ProxyNested> nestedProxy = new Proxy<ProxyNested>(new UUID(0, 0), store, ProxyNested.class);
+
             expectWrite(null, "./field", "a", String.class, TYPE.PRIMITIVE_FIELD);
-            Proxy<ProxyNested> nestedProxy = new Proxy<ProxyNested>(new UUID(0,0), store, ProxyNested.class);
-            one(objectSerializer).serialize(with(equal(new SerializedField<Proxy<ProxyNested>>(0, "./proxy",
-                    nestedProxy, ProxyNested.class/*nestedProxy.getClass()*/, TYPE.PROXIED_FIELD)))); inSequence(serializing);
-//            expectWrite<Proxy<ProxyNested>>(0, "./proxy", nestedProxy, nestedProxy.getClass(), TYPE.PROXIED_FIELD);
-            one(objectSerializer).serialize(with(equal(new SerializedField<String>(0, "./proxy/field", "b", String.class, TYPE.PRIMITIVE_FIELD)))); inSequence(serializing);
-            one(objectSerializer).serialize(with(equal(new SerializedField<String>(0, "./proxy/proxy", null, ProxyNested.class, TYPE.PROXIED_FIELD)))); inSequence(serializing);
-        }
-
-            private <T> void expectWrite(int id, String path, T value, Class<Proxy> clazz, TYPE recordType) {
-                expectWrite(new UUID(0, id), path, value, clazz, recordType);
-            }
-
-            private <T> void expectWrite(UUID id, String path, T value, Class clazz, TYPE recordType) {
-                one(objectSerializer).serialize(with(equal(new SerializedField<T>(id, path, value, clazz, recordType))));
-                inSequence(serializing);
-            }
-        });
+            expectWrite(0, "./proxy", nestedProxy, ProxyNested.class, TYPE.PROXIED_FIELD);
+            expectWrite(0, "./proxy/field", "b", String.class, TYPE.PRIMITIVE_FIELD);
+            expectWrite(0, "./proxy/proxy", null, ProxyNested.class, TYPE.PROXIED_FIELD);
+        }});
 
         store.setUuidGenerator(uuidGenerator);
         ProxyNested proxyNested = new ProxyNested("a", new Proxy<ProxyNested>(store, new ProxyNested("b", null), ProxyNested.class));
@@ -132,23 +165,36 @@ public class ObjectScannerTest {
 
     @Test
     public void testProxyList() {
-
+        // TODO write
     }
 
     @Test
     public void testList() throws IllegalAccessException, StoreException {
-        context.checking(new Expectations() {{
-            one(objectSerializer).serialize(with(any(SerializedList.class)));
+        final UUIDGenerator uuidGenerator = context.mock(UUIDGenerator.class);
+        final ProxyList<Dummy> list = new ProxyList<Dummy>(swap, Dummy.class, new UUID(0, 0)); // TODO Can't have ProxyList<Dummy>, only ProxyList<Proxy<Dummy>>
+        store.setUuidGenerator(uuidGenerator);
+
+        context.checking(new UUIDSequenceExpectations(context, uuidGenerator, objectSerializer) {{
+//            one(objectSerializer).serialize(with(any(SerializedList.class)));
+            expectSequentalUUIDs(1, 3);
+            expectWrite(0, ".[", list, Dummy.class, TYPE.PROXY_LIST);
+
+            expectWrite(1, ".[0", new Dummy("one"), Dummy.class, TYPE.LIST_VALUE);
+//            expectWrite(1, ".[0/field", "one", String.class, TYPE.PRIMITIVE_FIELD);
+
+            expectWrite(2, ".[1", new Dummy("two"), Dummy.class, TYPE.LIST_VALUE);
+//            expectWrite(2, ".[1/field", "two", String.class, TYPE.PRIMITIVE_FIELD);
+
+            expectWrite(3, ".[2", new Dummy("three"), Dummy.class, TYPE.LIST_VALUE);
+//            expectWrite(3, ".[2/field", "three", String.class, TYPE.PRIMITIVE_FIELD);
         }});
 
-        ProxyList<Dummy> list = new ProxyList<Dummy>(swap, Dummy.class);
         list.add(new Dummy("one"));
         list.add(new Dummy("two"));
         list.add(new Dummy("three"));
 
         scanner.scanObject(list);
     }
-
 
 
     @Test
@@ -159,6 +205,51 @@ public class ObjectScannerTest {
         assertEquals(String.class, fields.get(0).getType());
     }
 
+    @Test
+    public void testTransientFieldsAreIgnored() throws StoreException, IllegalAccessException {
+        ObjectWithTransientField objectWithTransientField = new ObjectWithTransientField();
+
+        final UUIDGenerator uuidGenerator = context.mock(UUIDGenerator.class);
+        store.setUuidGenerator(uuidGenerator);
+
+        context.checking(new UUIDSequenceExpectations(context, uuidGenerator, objectSerializer) {{
+//            expectSequentalUUIDs(1);
+
+//            expectWrite(null, ".", new ObjectWithTransientField(), ObjectWithTransientField.class, TYPE.COMPOUND_VALUE);
+            expectWrite(null, "./nontransientField", "nontransient", String.class, TYPE.PRIMITIVE_FIELD);
+
+        }});
+
+        scanner.scanObject(objectWithTransientField);
+    }
+
+    public static class ObjectWithTransientField {
+        transient String transientField = "transient";
+        String nontransientField = "nontransient";
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) return true;
+            if (o == null || getClass() != o.getClass()) return false;
+
+            ObjectWithTransientField that = (ObjectWithTransientField) o;
+
+            if (nontransientField != null ? !nontransientField.equals(that.nontransientField) : that.nontransientField != null)
+                return false;
+            if (transientField != null ? !transientField.equals(that.transientField) : that.transientField != null)
+                return false;
+
+            return true;
+        }
+
+        @Override
+        public int hashCode() {
+            int result = transientField != null ? transientField.hashCode() : 0;
+            result = 31 * result + (nontransientField != null ? nontransientField.hashCode() : 0);
+            return result;
+        }
+    }
+
     private class Nested {
         String value;
         Nested nested = null;
@@ -166,6 +257,7 @@ public class ObjectScannerTest {
         public Nested(String value) {
             this.value = value;
         }
+
         public Nested(String value, Nested nested) {
             this.value = value;
             this.nested = nested;

@@ -26,12 +26,16 @@ public class Swap {
         // TODO Should get be in Proxy??
     }
     
-    public <T> List<T> newWrapList(Class<T> clazz){
+    public <T> List<T> newWrapList(Class<T> clazz) throws StoreException {
         return new ProxyList<T>(this, clazz);
     }
     
     public <T> Set<T> newWrapSet(Class<T> clazz){
         return new ProxySet<T>(this, clazz);
+    }
+
+    public Store getStore() {
+        return store;
     }
     
 }

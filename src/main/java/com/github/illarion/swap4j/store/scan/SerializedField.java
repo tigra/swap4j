@@ -10,7 +10,7 @@ import java.util.UUID;
  *
  * @author Alexey Tigarev
  */
-public class SerializedField<T> implements PreSerialized {
+public class SerializedField<T>  {
     private T value;
     private TYPE type;
     private Class clazz;
@@ -21,10 +21,17 @@ public class SerializedField<T> implements PreSerialized {
     }
 
     public SerializedField(UUID id, String path, T value, Class clazz, TYPE type) {
+        checkValue(value);
         this.clazz = clazz;
         this.locator = new Locator(id, path);
         this.type = type;
         this.value = value;
+    }
+
+    private void checkValue(T value) {
+        if (null != value && value instanceof SerializedField) {
+            throw new IllegalArgumentException("Nested SerializedFields are wrong + " + this + ", " + value);
+        }
     }
 
     public SerializedField(int idNumber, String path, T value, Class clazz, TYPE type) {
@@ -32,10 +39,19 @@ public class SerializedField<T> implements PreSerialized {
     }
 
     public SerializedField(Locator locator, T value, Class clazz, TYPE type) {
+        checkValue(value);
         this.clazz = clazz;
         this.locator = locator;
         this.type = type;
         this.value = value;
+    }
+
+    public UUID getId() {
+        return locator.getId();
+    }
+
+    public Object getValue() {
+        return value;
     }
 
     @Override
@@ -65,9 +81,9 @@ public class SerializedField<T> implements PreSerialized {
 
         SerializedField that = (SerializedField) o;
 
+        if (type != that.type) return false;
         if (clazz != null ? !clazz.equals(that.clazz) : that.clazz != null) return false;
         if (locator != null ? !locator.equals(that.locator) : that.locator != null) return false;
-        if (type != that.type) return false;
         if (value != null ? !value.equals(that.value) : that.value != null) return false;
 
         return true;
@@ -80,5 +96,9 @@ public class SerializedField<T> implements PreSerialized {
         result = 31 * result + (clazz != null ? clazz.hashCode() : 0);
         result = 31 * result + (locator != null ? locator.hashCode() : 0);
         return result;
+    }
+
+    public Locator getLocator() {
+        return locator;
     }
 }

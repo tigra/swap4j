@@ -8,7 +8,7 @@ package com.github.illarion.swap4j.store;
  *
  * @author shaman
  */
-public class StoreException extends Exception {
+public class StoreException extends Exception { // TODO Make runtime exception (it is too frequent)
 
     public StoreException(String string) {
         super(string);

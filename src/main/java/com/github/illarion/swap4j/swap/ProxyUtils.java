@@ -50,7 +50,8 @@ public class ProxyUtils {
         return null; // callback or proxy not found
     }
 
-    private static Object call(Object object, String methodName) throws NoSuchMethodException, IllegalAccessException, InvocationTargetException {
+    private static Object call(Object object, String methodName)
+            throws NoSuchMethodException, IllegalAccessException, InvocationTargetException {
         Method method = object.getClass().getMethod(methodName, new Class[]{});
         return method.invoke(object, new Object[]{});
     }

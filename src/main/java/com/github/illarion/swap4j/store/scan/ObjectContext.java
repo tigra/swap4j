@@ -21,19 +21,34 @@ public class ObjectContext {
         return newLocator;
     }
 
-    public Locator push(String name, UUID newId) {
+    public Locator push(UUID newId, String additionalPathComponent) {
         Locator locator = stack.peek();
-        locator = new Locator(newId, locator.getPath() + "/" + name);
+        locator = new Locator(newId, locator.getPath() + additionalPathComponent);
         stack.push(locator);
         return locator;
     }
 
 
-    public void addRoot() {
-        stack.push(new Locator(null, "."));
+
+    public void addRoot(UUID id) {
+        stack.push(new Locator(id, "."));
     }
 
     public Locator peek() {
         return stack.peek();
+    }
+
+    @Override
+    public String toString() {
+        return "ObjectContext{stack=" + dump(stack) + '}';
+    }
+
+    private String dump(Stack<Locator> stack) {
+        StringBuilder builder = new StringBuilder("[");
+        for (Locator l: stack) {
+            builder.append(l).append(",");
+        }
+        builder.append("]");
+        return builder.toString();
     }
 }

@@ -19,6 +19,9 @@ public enum TYPE {
     COMPOUND_FIELD,
     COMPOUND_VALUE,
     PROXY_LIST,
+    /**
+     * Proxy inside certain ProxyList
+     */
     LIST_VALUE,
     LIST_FIELD,
     PROXY_SET,

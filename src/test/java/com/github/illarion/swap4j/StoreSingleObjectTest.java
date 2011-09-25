@@ -5,8 +5,10 @@
 package com.github.illarion.swap4j;
 
 import com.github.illarion.swap4j.store.StoreException;
+import com.github.illarion.swap4j.store.scan.MapWriter;
+import com.github.illarion.swap4j.store.scan.TestObjectScannerStore;
+import com.github.illarion.swap4j.swap.UUIDGenerator;
 import org.junit.rules.TemporaryFolder;
-import com.github.illarion.swap4j.store.simplegsonstore.SimpleStore;
 import com.github.illarion.swap4j.store.Store;
 import com.github.illarion.swap4j.swap.Swap;
 
@@ -25,17 +27,11 @@ import static org.junit.Assert.assertEquals;
 public class StoreSingleObjectTest {
 
     public static class Foo {
-
         private String bar;
         private Foo nestedFoo;
 
         public Foo() {
         }
-
-        public void setBar(String bar) {
-            this.bar = bar;
-        }
-
 
         public Foo(String bar, Foo nestedFoo) {
             this.bar = bar;
@@ -46,15 +42,18 @@ public class StoreSingleObjectTest {
             return bar;
         }
 
+        public void setBar(String bar) {
+            this.bar = bar;
+        }
+
+        public Foo getNestedFoo() {
+            return nestedFoo;
+        }
+
         @Override
         public String toString() {
             return "Foo{" + "bar=" + bar + ", nestedFoo=" + nestedFoo + '}';
         }
-
-        
-        
-        
-        
 
         @Override
         public boolean equals(Object obj) {
@@ -77,13 +76,25 @@ public class StoreSingleObjectTest {
             hash = 61 * hash + (this.bar != null ? this.bar.hashCode() : 0);
             return hash;
         }
-
-        public Foo getNestedFoo() {
-            return nestedFoo;
-        }
-        
-        
     }
+
+    public static class A {
+        String field = "A";
+    }
+
+    public static class B {
+        String field = "B";
+        A a = null;
+
+        public B(A a, String f) {
+            this.a = a;
+            this.field = f;
+        }
+
+        public B() {
+        }
+    }
+
     private Store store;
     private Swap swap;
     
@@ -92,29 +103,42 @@ public class StoreSingleObjectTest {
 
     @Before
     public void setUp() throws Exception {
-        store = new SimpleStore(testFolder.newFolder("temp"));
+//        store = new SimpleStore(testFolder.newFolder("temp"));
+        store = new TestObjectScannerStore(new MapWriter(), new UUIDGenerator());
         swap = new Swap(store);
     }
 
     @Test
     public void testStoreRestoreSingleObject() throws Exception {
-        
         Foo foo = swap.wrap(new Foo("1", null), Foo.class);
-        
         assertEquals("1", foo.getBar());
+    }
+
+
+    @Test
+    public void testNestedWithNullInside() throws StoreException {
+//        A a = swap.wrap(new A(), A.class);
+        B b = swap.wrap(new B(null, "B"), B.class);
+    }
+
+    @Test
+    public void testStoreRestoreNestedNullProxy() throws StoreException {
+        Foo foo = swap.wrap(new Foo("FOO", null), Foo.class);
+        assertEquals(null, foo.getNestedFoo());
+        assertEquals("FOO", foo.getBar());
     }
 
     @Test
     public void testStoreRestoreNestedObject() throws Exception {
+        // setup
         Foo nested = swap.wrap(new Foo("2", null), Foo.class);
-
         Foo foo = swap.wrap(new Foo("1", nested), Foo.class);
-
+        // excersize
         Foo nestedActual = foo.getNestedFoo();
-        
+        // verify
         assertNotNull(nestedActual);
-        
         assertEquals("2", nestedActual.getBar());
+        assertEquals(null, nestedActual.getNestedFoo());
     }
 
     @Test

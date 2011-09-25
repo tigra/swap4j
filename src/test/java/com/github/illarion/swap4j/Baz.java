@@ -1,5 +1,6 @@
 package com.github.illarion.swap4j;
 
+import com.github.illarion.swap4j.store.StoreException;
 import com.github.illarion.swap4j.swap.Swap;
 
 import java.util.List;
@@ -17,17 +18,20 @@ public class Baz {
     private List<Baz> children = null;
     private transient Swap swap = null;
 
-    public Baz(Swap swap, String value) {
-        this.swap = swap;
+    public Baz(Swap swap, String value) throws StoreException {
         this.value = value;
         children = swap.newWrapList(Baz.class);
+        this.swap = swap;
     }
 
     public Baz() {
 
     }
 
-    public void add(Baz elem) {
+    public void add(Baz elem) throws StoreException {
+        if (null == children) {
+            children = swap.newWrapList(Baz.class);
+        }
         children.add(elem);
     }
 
