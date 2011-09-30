@@ -1,8 +1,11 @@
 package com.github.illarion.swap4j.store.scan;
 
+import java.util.ArrayList;
+import java.util.List;
+import java.util.StringTokenizer;
 import java.util.UUID;
 
-public class Locator {
+public class Locator implements Comparable<Locator>{
     private String path;
     private UUID id;
 
@@ -63,5 +66,46 @@ public class Locator {
         int result = path != null ? path.hashCode() : 0;
         result = 31 * result + (id != null ? id.hashCode() : 0);
         return result;
+    }
+
+    @Override
+    public int compareTo(Locator that) {
+        if (null == this.id) {
+            return null == that.id ? 0 : -1;
+        }
+        if (null == that.id) {
+            return 0;
+        }
+        int uuidResult = this.id.compareTo(that.id);
+        if (uuidResult != 0) {
+            return uuidResult;
+        }
+        if (null == this.path) {
+            return null == that.path ? 0 : -1;
+        }
+        if (null == that.path) {
+            return 1;
+        }
+        return this.path.compareTo(that.path);
+    }
+
+    public boolean isRoot(SerializedField serializedField) {
+        return ".".equals(getPath());
+    }
+
+    public List<String> getParsedPath() {
+        StringTokenizer tokenizer = new StringTokenizer(path, "/");
+        List<String> parsedPath = new ArrayList<String>();
+
+        if (!tokenizer.hasMoreTokens()) {
+            throw new IllegalArgumentException("Invalid path: " + path);
+        }
+        tokenizer.nextToken(); // "."
+
+        while (tokenizer.hasMoreTokens()) {
+            parsedPath.add(tokenizer.nextToken());
+        }
+
+        return parsedPath;
     }
 }

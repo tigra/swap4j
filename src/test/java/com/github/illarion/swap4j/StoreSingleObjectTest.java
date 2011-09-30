@@ -6,10 +6,10 @@ package com.github.illarion.swap4j;
 
 import com.github.illarion.swap4j.store.StoreException;
 import com.github.illarion.swap4j.store.scan.MapWriter;
-import com.github.illarion.swap4j.store.scan.TestObjectScannerStore;
+import com.github.illarion.swap4j.store.scan.TestObjectScannerObjectStorage;
 import com.github.illarion.swap4j.swap.UUIDGenerator;
 import org.junit.rules.TemporaryFolder;
-import com.github.illarion.swap4j.store.Store;
+import com.github.illarion.swap4j.store.ObjectStorage;
 import com.github.illarion.swap4j.swap.Swap;
 
 import java.util.UUID;
@@ -95,7 +95,7 @@ public class StoreSingleObjectTest {
         }
     }
 
-    private Store store;
+    private ObjectStorage objectStore;
     private Swap swap;
     
     @Rule
@@ -104,9 +104,9 @@ public class StoreSingleObjectTest {
     @Before
     public void setUp() throws Exception {
 //        store = new SimpleStore(testFolder.newFolder("temp"));
-        store = new TestObjectScannerStore(null, new MapWriter(), new UUIDGenerator());
-        swap = new Swap(store);
-        ((TestObjectScannerStore)store).setSwap(swap);
+        objectStore = new TestObjectScannerObjectStorage(null, new MapWriter(), new UUIDGenerator());
+        swap = new Swap(objectStore);
+        ((TestObjectScannerObjectStorage) objectStore).setSwap(swap);
     }
 
     @Test
@@ -165,6 +165,6 @@ public class StoreSingleObjectTest {
     @Test
     public void storeTest() throws Exception {
         Foo foo = swap.wrap(new Foo("1", null), Foo.class);
-        store.store(UUID.fromString("00000000-0000-0000-0000-000000000000"), foo);
+        objectStore.store(UUID.fromString("00000000-0000-0000-0000-000000000000"), foo);
     }
 }

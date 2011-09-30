@@ -5,9 +5,7 @@ import com.github.illarion.swap4j.swap.Proxy;
 import com.github.illarion.swap4j.swap.ProxyList;
 import com.github.illarion.swap4j.swap.ProxyUtils;
 import com.github.illarion.swap4j.swap.Utils;
-import net.sf.cglib.proxy.Enhancer;
 
-import java.lang.reflect.AccessibleObject;
 import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
 import java.util.*;
@@ -21,10 +19,10 @@ import java.util.*;
  * @author Alexey Tigarev
  */
 public class ObjectScanner {
-    private ObjectSerializer writer;
+    private FieldStorage writer;
     private final ObjectContext objectContext = new ObjectContext();
 
-    public ObjectScanner(ObjectSerializer writer) {
+    public ObjectScanner(FieldStorage writer) {
         this.writer = writer;
     }
 
@@ -65,7 +63,7 @@ public class ObjectScanner {
             return;
         }
         assert clazz.equals(object.getClass());
-        List<Field> fields = getAllFields(clazz);
+        List<Field> fields = Utils.getAllFields(clazz);
         for (Field field : fields) {
             final Class<?> fieldType = field.getType();
             final Object fieldValue = field.get(object);
@@ -104,17 +102,6 @@ public class ObjectScanner {
         write(locator, value, clazz, TYPE.COMPOUND_FIELD);
         scan(value);
         objectContext.pop();
-    }
-
-    static List<Field> getAllFields(Class clazz) {
-        List<Field> fields = new ArrayList<Field>();
-        while (clazz != null) {
-            final Field[] declaredFields = clazz.getDeclaredFields();
-            AccessibleObject.setAccessible(declaredFields, true);
-            fields.addAll(Arrays.asList(declaredFields));
-            clazz = clazz.getSuperclass();
-        }
-        return fields;
     }
 
     private void visitPrimitiveField(String name, Object value) {

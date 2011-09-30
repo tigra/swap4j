@@ -1,5 +1,9 @@
 package com.github.illarion.swap4j.store.scan;
 
+import com.github.illarion.swap4j.swap.Utils;
+
+import java.lang.reflect.Field;
+import java.util.List;
 import java.util.UUID;
 
 /**
@@ -10,11 +14,11 @@ import java.util.UUID;
  *
  * @author Alexey Tigarev
  */
-public class SerializedField<T>  {
+public class SerializedField<T> implements Comparable<SerializedField<T>> {
     private T value;
     private TYPE type;
     private Class clazz;
-    private Locator locator;
+    Locator locator;
 
 
     public SerializedField() {
@@ -101,4 +105,48 @@ public class SerializedField<T>  {
     public Locator getLocator() {
         return locator;
     }
+
+    @Override
+    public int compareTo(SerializedField<T> that) {
+        if (this.locator == null) {
+            return that.locator == null? 0 : -1;
+        }
+        if (that.locator == null) {
+            return 1;
+        }
+        return this.locator.compareTo(that.locator);
+    }
+
+
+    /**
+     * Write the value of this field to specified object into place identified by path.
+     *
+     * @param object
+     * @throws NoSuchFieldException
+     * @throws IllegalAccessException
+     */
+    public void writeTo(Object object) throws NoSuchFieldException, IllegalAccessException {
+        if (getLocator().isRoot(this)) {
+            return; // can't set object itself, ignoring
+        }
+        List<String> pathComponents = locator.getParsedPath();
+        writeTo(object, pathComponents, getValue());
+    }
+
+    public void writeTo(Object object, List<String> pathComponents, Object value) throws NoSuchFieldException, IllegalAccessException {
+        if (pathComponents.size() < 1) {
+            throw new IllegalArgumentException("Hm.....");
+        }
+        String fieldName = pathComponents.get(0);
+        Class<? extends Object> clazz = object.getClass();
+
+        Field field = Utils.getAccessibleField(fieldName, clazz);
+        if (pathComponents.size() == 1) {
+            field.set(object, value);
+        } else {
+            pathComponents.remove(0);
+            writeTo(field.get(object), pathComponents, value);
+        }
+    }
+
 }

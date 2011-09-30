@@ -4,15 +4,13 @@
  */
 package com.github.illarion.swap4j;
 
+import com.github.illarion.swap4j.store.ObjectStorage;
 import com.github.illarion.swap4j.store.StoreException;
 
 import java.util.*;
 
-import com.github.illarion.swap4j.store.Store;
-import com.github.illarion.swap4j.store.scan.Locator;
 import com.github.illarion.swap4j.store.scan.MapWriter;
-import com.github.illarion.swap4j.store.scan.SerializedField;
-import com.github.illarion.swap4j.store.scan.TestObjectScannerStore;
+import com.github.illarion.swap4j.store.scan.TestObjectScannerObjectStorage;
 import com.github.illarion.swap4j.swap.*;
 import org.junit.Before;
 import org.junit.Test;
@@ -50,7 +48,7 @@ public class SimpleTest {
         }
     }
 
-    private Store store;
+    private ObjectStorage objectStore;
 //    private Store store = new Store() {
 //
 //        private Map<UUID, Object> map = new HashMap<UUID, Object>();
@@ -94,7 +92,7 @@ public class SimpleTest {
 
     @Test
     public void testSwapSingleValue() throws StoreException {
-        Swap swap = new Swap(store);
+        Swap swap = new Swap(objectStore);
 
         Bar bar = swap.wrap(new Bar("new"), Bar.class);
 
@@ -106,7 +104,7 @@ public class SimpleTest {
 
     @Test
     public void testSwapList() throws StoreException {
-        Swap swap = new Swap(store);
+        Swap swap = new Swap(objectStore);
 
         List<Bar> list = swap.newWrapList(Bar.class);
 
@@ -120,8 +118,8 @@ public class SimpleTest {
 
     @Before
     public void setUp() {
-        store = new TestObjectScannerStore(swap, new MapWriter(), new UUIDGenerator());
-        swap = new Swap(store);
+        objectStore = new TestObjectScannerObjectStorage(swap, new MapWriter(), new UUIDGenerator());
+        swap = new Swap(objectStore);
     }
 
     @Test
@@ -145,7 +143,7 @@ public class SimpleTest {
 
     @Test
     public void testBigSwapList() throws StoreException {
-        Swap swap = new Swap(store);
+        Swap swap = new Swap(objectStore);
         List<Bar> list = swap.newWrapList(Bar.class);
 
         for (int i = 0; i < 10000; i++) {
@@ -164,7 +162,7 @@ public class SimpleTest {
 
     @Test
     public void testSwapSet() {
-        Swap swap = new Swap(store);
+        Swap swap = new Swap(objectStore);
 
         Set<Bar> set = swap.newWrapSet(Bar.class);
 

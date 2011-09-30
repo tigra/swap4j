@@ -15,7 +15,7 @@ import java.util.UUID;
  *
  * @author shaman
  */
-public interface Store extends Iterable<Locator> {
+public interface ObjectStorage extends Iterable<Locator> {
 
     /**
      * Store specified object of type T with given id.

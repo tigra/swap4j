@@ -4,7 +4,7 @@
  */
 package com.github.illarion.swap4j.swap;
 
-import com.github.illarion.swap4j.store.Store;
+import com.github.illarion.swap4j.store.ObjectStorage;
 import com.github.illarion.swap4j.store.StoreException;
 
 import java.util.UUID;
@@ -18,26 +18,26 @@ import net.sf.cglib.proxy.Enhancer;
 public class Proxy<T> implements Locatable<T> {
 
     UUID id; // TODO Make sure they don't repeat
-    transient final Store store;
+    transient final ObjectStorage objectStore;
     volatile T realObject;
     transient final Class<T> clazz;
 
     transient final Callback callback = new SwapCallback(this);
     private transient int depth = 0;
 
-    public Proxy(UUID id, Store store, Class<T> clazz) throws StoreException {
+    public Proxy(UUID id, ObjectStorage objectStore, Class<T> clazz) throws StoreException {
         checkIfClassIsAllowed(clazz);
         this.id = id;
-        this.store = store;
+        this.objectStore = objectStore;
         this.clazz = clazz;
         this.realObject = null;
     }
 
-    public Proxy(Store store, T realObject, Class<T> clazz) throws StoreException {
+    public Proxy(ObjectStorage objectStore, T realObject, Class<T> clazz) throws StoreException {
         checkIfClassIsAllowed(clazz);
         checkObjectIsAllowed(realObject);
-        this.id = store.createUUID();
-        this.store = store;
+        this.id = objectStore.createUUID();
+        this.objectStore = objectStore;
         this.realObject = realObject;
         this.clazz = clazz;
         unload();
@@ -60,7 +60,7 @@ public class Proxy<T> implements Locatable<T> {
     public void unload() throws StoreException {
         synchronized (id) {
 //            store.store(id, realObject);
-            store.store(id, this);
+            objectStore.store(id, this);
             realObject = null;
         }
     }
@@ -69,7 +69,7 @@ public class Proxy<T> implements Locatable<T> {
     public void load() throws StoreException {
         synchronized (id) {
             if (null == realObject) {
-                realObject = store.reStore(id, clazz);
+                realObject = objectStore.reStore(id, clazz);
             }
         }
     }
@@ -108,7 +108,7 @@ public class Proxy<T> implements Locatable<T> {
 
     @Override
     public boolean isLoaded() {
-        return null == realObject;
+        return null != realObject;
     }
 
     public T getRealObject() {
@@ -124,7 +124,7 @@ public class Proxy<T> implements Locatable<T> {
 
         if (clazz != null ? !clazz.equals(proxy.clazz) : proxy.clazz != null) return false;
         if (id != null ? !id.equals(proxy.id) : proxy.id != null) return false;
-        if (store != null ? !store.equals(proxy.store) : proxy.store != null) return false;
+        if (objectStore != null ? !objectStore.equals(proxy.objectStore) : proxy.objectStore != null) return false;
 
         return true;
     }
@@ -132,7 +132,7 @@ public class Proxy<T> implements Locatable<T> {
     @Override
     public int hashCode() {
         int result = id != null ? id.hashCode() : 0;
-        result = 31 * result + (store != null ? store.hashCode() : 0);
+        result = 31 * result + (objectStore != null ? objectStore.hashCode() : 0);
         result = 31 * result + (clazz != null ? clazz.hashCode() : 0);
         return result;
     }
@@ -143,7 +143,7 @@ public class Proxy<T> implements Locatable<T> {
         sb.append("Proxy");
         sb.append("{callback=").append(callback);
         sb.append(", id=").append(id);
-        sb.append(", store=").append(store);
+        sb.append(", store=").append(objectStore);
         sb.append(", realObject=").append(realObject);
         sb.append(", clazz=").append(clazz);
         sb.append('}');

@@ -1,6 +1,6 @@
 package com.github.illarion.swap4j.swap;
 
-import com.github.illarion.swap4j.store.scan.ObjectSerializer;
+import com.github.illarion.swap4j.store.scan.FieldStorage;
 import com.github.illarion.swap4j.store.scan.SerializedField;
 import com.github.illarion.swap4j.store.scan.TYPE;
 import org.jmock.Expectations;
@@ -18,9 +18,9 @@ public class UUIDSequenceExpectations extends Expectations {
     private Sequence uuidSequence;
     private Sequence serializationSequence;
     private UUIDGenerator uuidGenerator;
-    private ObjectSerializer objectSerializer;
+    private FieldStorage objectSerializer;
 
-    public UUIDSequenceExpectations(UUIDGenerator uuidGenerator, Sequence uuidSequence, ObjectSerializer objectSerializer) {
+    public UUIDSequenceExpectations(UUIDGenerator uuidGenerator, Sequence uuidSequence, FieldStorage objectSerializer) {
         this.uuidGenerator = uuidGenerator;
         this.uuidSequence = uuidSequence;
         this.objectSerializer = objectSerializer;
@@ -39,7 +39,7 @@ public class UUIDSequenceExpectations extends Expectations {
     }
 
 
-    public UUIDSequenceExpectations(Mockery mockery, UUIDGenerator uuidGenerator, ObjectSerializer objectSerializer) {
+    public UUIDSequenceExpectations(Mockery mockery, UUIDGenerator uuidGenerator, FieldStorage objectSerializer) {
         this.uuidGenerator = uuidGenerator;
         this.uuidSequence = createSequence(mockery, "uuid");
         this.objectSerializer = objectSerializer;

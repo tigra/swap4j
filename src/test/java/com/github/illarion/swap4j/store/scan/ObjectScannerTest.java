@@ -1,9 +1,7 @@
 package com.github.illarion.swap4j.store.scan;
 
-import com.github.illarion.swap4j.store.Store;
 import com.github.illarion.swap4j.store.StoreException;
 import com.github.illarion.swap4j.swap.*;
-import com.sun.rowset.internal.XmlReaderContentHandler;
 import org.jmock.Expectations;
 import org.jmock.Mockery;
 import org.jmock.Sequence;
@@ -11,14 +9,11 @@ import org.jmock.integration.junit4.JMock;
 import org.jmock.integration.junit4.JUnit4Mockery;
 import org.jmock.lib.legacy.ClassImposteriser;
 import org.junit.Before;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.TemporaryFolder;
 import org.junit.runner.RunWith;
 
 import java.lang.reflect.Field;
 import java.util.*;
-import java.util.logging.Logger;
 
 import static junit.framework.Assert.assertEquals;
 
@@ -36,19 +31,19 @@ public class ObjectScannerTest {
         setImposteriser(ClassImposteriser.INSTANCE);
     }};
 
-    private TestObjectScannerStore store;
+    private TestObjectScannerObjectStorage store;
     private Swap swap;
-    private ObjectSerializer objectSerializer;
+    private FieldStorage objectSerializer;
     private ObjectScanner scanner;
     private UUIDGenerator uuidGenerator = new UUIDGenerator();
 
     @Before
     public void setUp() throws StoreException {
-        store = new TestObjectScannerStore(null, new MapWriter(), uuidGenerator);
+        store = new TestObjectScannerObjectStorage(null, new MapWriter(), uuidGenerator);
         swap = new Swap(store);
-        ((TestObjectScannerStore)store).setSwap(swap);
+        ((TestObjectScannerObjectStorage)store).setSwap(swap);
 
-        objectSerializer = context.mock(ObjectSerializer.class);
+        objectSerializer = context.mock(DummyFieldStorage.class);
         scanner = new ObjectScanner(objectSerializer);
     }
 
@@ -148,7 +143,7 @@ public class ObjectScannerTest {
 
     @Test
     public void testGetAllFields() {
-        List<Field> fields = ObjectScanner.getAllFields(Dummy.class);
+        List<Field> fields = Utils.getAllFields(Dummy.class);
         assertEquals(1, fields.size());
         assertEquals("field", fields.get(0).getName());
         assertEquals(String.class, fields.get(0).getType());
@@ -195,40 +190,6 @@ public class ObjectScannerTest {
         public int hashCode() {
             int result = transientField != null ? transientField.hashCode() : 0;
             result = 31 * result + (nontransientField != null ? nontransientField.hashCode() : 0);
-            return result;
-        }
-    }
-
-    private class Nested {
-        String value;
-        Nested nested = null;
-
-        public Nested(String value) {
-            this.value = value;
-        }
-
-        public Nested(String value, Nested nested) {
-            this.value = value;
-            this.nested = nested;
-        }
-
-        @Override
-        public boolean equals(Object o) {
-            if (this == o) return true;
-            if (o == null || getClass() != o.getClass()) return false;
-
-            Nested nested1 = (Nested) o;
-
-            if (nested != null ? !nested.equals(nested1.nested) : nested1.nested != null) return false;
-            if (value != null ? !value.equals(nested1.value) : nested1.value != null) return false;
-
-            return true;
-        }
-
-        @Override
-        public int hashCode() {
-            int result = value != null ? value.hashCode() : 0;
-            result = 31 * result + (nested != null ? nested.hashCode() : 0);
             return result;
         }
     }

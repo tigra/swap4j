@@ -4,7 +4,7 @@
  */
 package com.github.illarion.swap4j.store.simplegsonstore;
 
-import com.github.illarion.swap4j.store.Store;
+import com.github.illarion.swap4j.store.ObjectStorage;
 import com.github.illarion.swap4j.store.StoreException;
 import com.github.illarion.swap4j.store.scan.Locator;
 import com.github.illarion.swap4j.store.scan.SerializedField;
@@ -30,13 +30,13 @@ import org.apache.commons.io.IOUtils;
 /**
  * @author shaman
  */
-public class SimpleStore implements Store {
+public class SimpleObjectStore implements ObjectStorage {
 
     private final File dir;
     private Gson gson = new GsonBuilder().create();
     private UUIDGenerator uuidGenerator = new UUIDGenerator();
 
-    public SimpleStore(File dir) throws StoreException {
+    public SimpleObjectStore(File dir) throws StoreException {
         this.dir = dir;
 
         if (!dir.exists()) {

@@ -14,8 +14,8 @@ import java.util.UUID;
 *
 * @author Alexey Tigarev
 */
-public class TestObjectScannerStore extends ObjectScannerStore {
-    public TestObjectScannerStore(Swap swap, ObjectSerializer writer, UUIDGenerator uuidGenerator) {
+public class TestObjectScannerObjectStorage extends ObjectFieldStorage {
+    public TestObjectScannerObjectStorage(Swap swap, FieldStorage writer, UUIDGenerator uuidGenerator) {
         super(writer, uuidGenerator, swap);
     }
 
@@ -26,16 +26,16 @@ public class TestObjectScannerStore extends ObjectScannerStore {
 
     @Override
     public Iterator<Locator> iterator() {
-        return writer.iterateStoredObjects();
+        return fieldStorage.iterator();
     }
 
     @Override
     public SerializedField getSerializedField(Locator locator) {
-        return writer.read(locator);
+        return fieldStorage.read(locator);
     }
 
-    public ObjectSerializer getWriter() {
-        return writer;
+    public FieldStorage getWriter() {
+        return fieldStorage;
     }
 
     public void setUuidGenerator(UUIDGenerator uuidGenerator) {

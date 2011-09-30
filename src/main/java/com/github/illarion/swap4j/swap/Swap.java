@@ -4,7 +4,7 @@
  */
 package com.github.illarion.swap4j.swap;
 
-import com.github.illarion.swap4j.store.Store;
+import com.github.illarion.swap4j.store.ObjectStorage;
 import com.github.illarion.swap4j.store.StoreException;
 import java.util.List;
 import java.util.Set;
@@ -15,14 +15,14 @@ import java.util.Set;
  */
 public class Swap {
 
-    private final Store store;
+    private final ObjectStorage objectStore;
 
-    public Swap(Store store) {
-        this.store = store;
+    public Swap(ObjectStorage objectStore) {
+        this.objectStore = objectStore;
     }
 
     public <T> T wrap(T instance, Class<T> clazz) throws StoreException {
-        return new Proxy<T>(store, instance, clazz).get();  
+        return new Proxy<T>(objectStore, instance, clazz).get();
         // TODO Should get() be in Proxy??
     }
     
@@ -34,8 +34,8 @@ public class Swap {
         return new ProxySet<T>(this, clazz);
     }
 
-    public Store getStore() {
-        return store;
+    public ObjectStorage getStore() {
+        return objectStore;
     }
     
 }
