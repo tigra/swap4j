@@ -16,6 +16,7 @@ import org.junit.runner.RunWith;
 
 import java.util.UUID;
 
+import static com.github.illarion.swap4j.CustomAssertions.obj;
 import static junit.framework.Assert.*;
 
 /**
@@ -55,14 +56,14 @@ public class ObjectScannerStoreTest {
         Dummy dummy = swap.wrap(new Dummy("dummY"), Dummy.class);
 
         assertStoreContains(
-                com.github.illarion.swap4j.CustomAssertions.obj(0, "./field", "dummY", String.class, TYPE.PRIMITIVE_FIELD),
-                com.github.illarion.swap4j.CustomAssertions.obj(0, ".", new Dummy("dummY"), Dummy.class, TYPE.PROXIED_VALUE));
+                obj(0, "./field", "dummY", String.class, TYPE.PRIMITIVE_FIELD),
+                obj(0, ".", new Dummy("dummY"), Dummy.class, TYPE.PROXIED_VALUE));
     }
 
     @Test
     public void testSimpleProxyRestore() throws StoreException {
-        initializeStore(com.github.illarion.swap4j.CustomAssertions.obj(0, "./field", "Dummy", String.class, TYPE.PRIMITIVE_FIELD),
-                com.github.illarion.swap4j.CustomAssertions.obj(0, ".", new Dummy("Dummy"), Dummy.class, TYPE.PROXIED_VALUE));
+        initializeStore(obj(0, "./field", "Dummy", String.class, TYPE.PRIMITIVE_FIELD),
+                obj(0, ".", new Dummy("Dummy"), Dummy.class, TYPE.PROXIED_VALUE));
 
         Dummy restored = store.reStore(new UUID(0,0), Dummy.class);
 
@@ -90,13 +91,13 @@ public class ObjectScannerStoreTest {
         list.add(new Dummy("three"));
 
         // verify
-        assertStoreContains(CustomAssertions.obj(0, ".[", list, Dummy.class, TYPE.PROXY_LIST),
-                com.github.illarion.swap4j.CustomAssertions.obj(1, ".", new Dummy("one"), Dummy.class, TYPE.PROXIED_VALUE),
-                com.github.illarion.swap4j.CustomAssertions.obj(1, "./field", "one", String.class, TYPE.PRIMITIVE_FIELD),
-                com.github.illarion.swap4j.CustomAssertions.obj(2, ".", new Dummy("two"), Dummy.class, TYPE.PROXIED_VALUE),
-                com.github.illarion.swap4j.CustomAssertions.obj(2, "./field", "two", String.class, TYPE.PRIMITIVE_FIELD),
-                com.github.illarion.swap4j.CustomAssertions.obj(3, ".", new Dummy("three"), Dummy.class, TYPE.PROXIED_VALUE),
-                com.github.illarion.swap4j.CustomAssertions.obj(3, "./field", "three", String.class, TYPE.PRIMITIVE_FIELD));
+        assertStoreContains(obj(0, ".[", list, Dummy.class, TYPE.PROXY_LIST),
+                obj(1, ".", new Dummy("one"), Dummy.class, TYPE.PROXIED_VALUE),
+                obj(1, "./field", "one", String.class, TYPE.PRIMITIVE_FIELD),
+                obj(2, ".", new Dummy("two"), Dummy.class, TYPE.PROXIED_VALUE),
+                obj(2, "./field", "two", String.class, TYPE.PRIMITIVE_FIELD),
+                obj(3, ".", new Dummy("three"), Dummy.class, TYPE.PROXIED_VALUE),
+                obj(3, "./field", "three", String.class, TYPE.PRIMITIVE_FIELD));
 
 //        assertStoreContains(obj(0, ".[", list, Dummy.class, TYPE.PROXY_LIST),
 //                obj(1, ".[0", new Dummy("one"), Dummy.class, TYPE.LIST_VALUE),
@@ -114,14 +115,14 @@ public class ObjectScannerStoreTest {
             expectSequentalUUIDs(0);
         }});
 
-        initializeStore(com.github.illarion.swap4j.CustomAssertions.obj(0, ".[", new ProxyListRecord(
+        initializeStore(obj(0, ".[", new ProxyListRecord(
                     new UUID(0,1), new UUID(0,2), new UUID(0,3)), Dummy.class, TYPE.PROXY_LIST),
-                com.github.illarion.swap4j.CustomAssertions.obj(1, ".", new Dummy("one"), Dummy.class, TYPE.PROXIED_VALUE),
-                com.github.illarion.swap4j.CustomAssertions.obj(1, "./field", "one", String.class, TYPE.PRIMITIVE_FIELD),
-                com.github.illarion.swap4j.CustomAssertions.obj(2, ".", new Dummy("two"), Dummy.class, TYPE.PROXIED_VALUE),
-                com.github.illarion.swap4j.CustomAssertions.obj(2, "./field", "two", String.class, TYPE.PRIMITIVE_FIELD),
-                com.github.illarion.swap4j.CustomAssertions.obj(3, ".", new Dummy("three"), Dummy.class, TYPE.PROXIED_VALUE),
-                com.github.illarion.swap4j.CustomAssertions.obj(3, "./field", "three", String.class, TYPE.PRIMITIVE_FIELD));
+                obj(1, ".", new Dummy("one"), Dummy.class, TYPE.PROXIED_VALUE),
+                obj(1, "./field", "one", String.class, TYPE.PRIMITIVE_FIELD),
+                obj(2, ".", new Dummy("two"), Dummy.class, TYPE.PROXIED_VALUE),
+                obj(2, "./field", "two", String.class, TYPE.PRIMITIVE_FIELD),
+                obj(3, ".", new Dummy("three"), Dummy.class, TYPE.PROXIED_VALUE),
+                obj(3, "./field", "three", String.class, TYPE.PRIMITIVE_FIELD));
 
         ProxyList list = store.reStore(new UUID(0, 0), ProxyList.class);
 
