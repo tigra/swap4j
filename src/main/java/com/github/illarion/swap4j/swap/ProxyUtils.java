@@ -30,8 +30,7 @@ public class ProxyUtils {
     public static <T> Proxy<T> getProxy(Object enhanced) throws StoreException {
         try {
             Callback callback = ((Callback[]) call(enhanced, "getCallbacks"))[0];
-            Proxy proxy = (Proxy) call(callback, "getProxy");
-            return proxy;
+            return (Proxy) call(callback, "getProxy");
 
             // TODO Different reactions to different exceptions. In some cases we actually have to fail.
         } catch (NoSuchMethodException ex) {
@@ -53,6 +52,6 @@ public class ProxyUtils {
     private static Object call(Object object, String methodName)
             throws NoSuchMethodException, IllegalAccessException, InvocationTargetException {
         Method method = object.getClass().getMethod(methodName, new Class[]{});
-        return method.invoke(object, new Object[]{});
+        return method.invoke(object );
     }
 }

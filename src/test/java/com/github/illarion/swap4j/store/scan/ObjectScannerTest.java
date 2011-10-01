@@ -41,7 +41,7 @@ public class ObjectScannerTest {
     public void setUp() throws StoreException {
         store = new TestObjectScannerObjectStorage(null, new MapWriter(), uuidGenerator);
         swap = new Swap(store);
-        ((TestObjectScannerObjectStorage)store).setSwap(swap);
+        store.setSwap(swap);
 
         objectSerializer = context.mock(DummyFieldStorage.class);
         scanner = new ObjectScanner(objectSerializer);
@@ -171,6 +171,7 @@ public class ObjectScannerTest {
         transient String transientField = "transient";
         String nontransientField = "nontransient";
 
+        @SuppressWarnings({"RedundantIfStatement"})
         @Override
         public boolean equals(Object o) {
             if (this == o) return true;

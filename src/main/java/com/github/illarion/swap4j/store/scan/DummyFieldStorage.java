@@ -6,11 +6,8 @@ import java.util.UUID;
 
 /**
  * TODO Describe class
- * <p/>
- * <p/>
- * Created at: Sep 16, 2011 2:23:16 AM
- *
- * @author Alexey Tigarev
+ * 
+ * @author Alexey Tigarev tigra@agile-algorithms.com
  */
 public abstract class DummyFieldStorage implements FieldStorage {
     @Override

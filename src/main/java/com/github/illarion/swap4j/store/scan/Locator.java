@@ -48,6 +48,7 @@ public class Locator implements Comparable<Locator>{
         }
     }
 
+    @SuppressWarnings({"RedundantIfStatement"})
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;

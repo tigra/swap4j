@@ -55,6 +55,7 @@ public class StoreSingleObjectTest {
             return "Foo{" + "bar=" + bar + ", nestedFoo=" + nestedFoo + '}';
         }
 
+        @SuppressWarnings({"RedundantIfStatement"})
         @Override
         public boolean equals(Object obj) {
             if (obj == null) {

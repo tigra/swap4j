@@ -157,7 +157,7 @@ public class ProxyList<T> implements List<T>, Locatable<T> {
 
     @Override
     public boolean addAll(int i, Collection<? extends T> ts) {
-        return addAll(i, ts);
+        return list.addAll(i, ts);
     }
 
     @Override
@@ -215,6 +215,7 @@ public class ProxyList<T> implements List<T>, Locatable<T> {
         return list.subList(i, i1);
     }
 
+    @SuppressWarnings({"RedundantIfStatement"})
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;

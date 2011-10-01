@@ -54,6 +54,10 @@ public class SerializedField<T> implements Comparable<SerializedField<T>> {
         return locator.getId();
     }
 
+    public Class getClazz() {
+        return clazz;
+    }
+
     public Object getValue() {
         return value;
     }
@@ -78,6 +82,7 @@ public class SerializedField<T> implements Comparable<SerializedField<T>> {
         }
     }
 
+    @SuppressWarnings({"RedundantIfStatement"})
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
@@ -138,7 +143,7 @@ public class SerializedField<T> implements Comparable<SerializedField<T>> {
             throw new IllegalArgumentException("Hm.....");
         }
         String fieldName = pathComponents.get(0);
-        Class<? extends Object> clazz = object.getClass();
+        Class<?> clazz = object.getClass();
 
         Field field = Utils.getAccessibleField(fieldName, clazz);
         if (pathComponents.size() == 1) {

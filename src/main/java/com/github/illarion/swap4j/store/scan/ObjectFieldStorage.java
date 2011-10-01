@@ -48,7 +48,7 @@ public abstract class ObjectFieldStorage implements ObjectStorage {
             final String path;
             if (ProxyList.class.isAssignableFrom(clazz)) {
                 final SerializedField<ProxyListRecord> serializedField = fieldStorage.read(new Locator(id, ".["));
-                ProxyList proxyList = new ProxyList(swap, serializedField.getClass(), id, (ProxyListRecord)serializedField.getValue());
+                ProxyList proxyList = new ProxyList(swap, serializedField.getClazz(), id, (ProxyListRecord)serializedField.getValue());
                 return (T)proxyList;
             } else {
                 List<SerializedField> fields = fieldStorage.readAll(id);

@@ -55,7 +55,7 @@ public class CglibTest {
 
         Callback callback = new MethodInterceptorImpl();
 
-        Foo created = (Foo) enhancer.create(Foo.class, callback);
+        Foo created = (Foo) Enhancer.create(Foo.class, callback);
 
         created = null;
 

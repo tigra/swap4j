@@ -72,11 +72,7 @@ public class ObjectScanner {
                 continue;
             }
             if (Proxy.class.isAssignableFrom(fieldType)) {
-                try {
-                    visitProxyField(field.getName(), (Proxy) fieldValue, Utils.getProxyType(field));
-                } catch (IllegalAccessException e) {
-                    throw e;
-                }
+                visitProxyField(field.getName(), (Proxy) fieldValue, Utils.getProxyType(field));
             } else if (String.class.isAssignableFrom(fieldType)) { // primitive
                 visitPrimitiveField(field.getName(), fieldValue);
             } else { // compound

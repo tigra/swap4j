@@ -55,18 +55,21 @@ public class ObjectScannerStoreTest {
 
         Dummy dummy = swap.wrap(new Dummy("dummY"), Dummy.class);
 
-        assertStoreContains(
+        assertStorageContains(
                 obj(0, "./field", "dummY", String.class, TYPE.PRIMITIVE_FIELD),
                 obj(0, ".", new Dummy("dummY"), Dummy.class, TYPE.PROXIED_VALUE));
     }
 
     @Test
     public void testSimpleProxyRestore() throws StoreException {
+        // setup
         initializeStore(obj(0, "./field", "Dummy", String.class, TYPE.PRIMITIVE_FIELD),
                 obj(0, ".", new Dummy("Dummy"), Dummy.class, TYPE.PROXIED_VALUE));
 
+        // excersize
         Dummy restored = store.reStore(new UUID(0,0), Dummy.class);
 
+        // verify
         assertEquals(new Dummy("Dummy"), restored);
     }
 
@@ -84,37 +87,24 @@ public class ObjectScannerStoreTest {
         }});
 
         // excersize
-
         final ProxyList<Dummy> list = new ProxyList<Dummy>(swap, Dummy.class, new UUID(0,0));
         list.add(new Dummy("one"));
         list.add(new Dummy("two"));
         list.add(new Dummy("three"));
 
         // verify
-        assertStoreContains(obj(0, ".[", list, Dummy.class, TYPE.PROXY_LIST),
+        assertStorageContains(obj(0, ".[", list, Dummy.class, TYPE.PROXY_LIST),
                 obj(1, ".", new Dummy("one"), Dummy.class, TYPE.PROXIED_VALUE),
                 obj(1, "./field", "one", String.class, TYPE.PRIMITIVE_FIELD),
                 obj(2, ".", new Dummy("two"), Dummy.class, TYPE.PROXIED_VALUE),
                 obj(2, "./field", "two", String.class, TYPE.PRIMITIVE_FIELD),
                 obj(3, ".", new Dummy("three"), Dummy.class, TYPE.PROXIED_VALUE),
                 obj(3, "./field", "three", String.class, TYPE.PRIMITIVE_FIELD));
-
-//        assertStoreContains(obj(0, ".[", list, Dummy.class, TYPE.PROXY_LIST),
-//                obj(1, ".[0", new Dummy("one"), Dummy.class, TYPE.LIST_VALUE),
-//                obj(1, ".[0/field", "one", String.class, TYPE.PRIMITIVE_FIELD),
-//                obj(2, ".[1", new Dummy("two"), Dummy.class, TYPE.LIST_VALUE),
-//                obj(2, ".[1/field", "two", String.class, TYPE.PRIMITIVE_FIELD),
-//                obj(3, ".[2", new Dummy("three"), Dummy.class, TYPE.LIST_VALUE),
-//                obj(3, ".[2/field", "three", String.class, TYPE.PRIMITIVE_FIELD));
     }
 
     @Test
     public void testProxyListRestore() throws StoreException {
         // setup
-        context.checking(new UUIDSequenceExpectations(uuidGenerator, context) {{
-            expectSequentalUUIDs(0);
-        }});
-
         initializeStore(obj(0, ".[", new ProxyListRecord(
                     new UUID(0,1), new UUID(0,2), new UUID(0,3)), Dummy.class, TYPE.PROXY_LIST),
                 obj(1, ".", new Dummy("one"), Dummy.class, TYPE.PROXIED_VALUE),
@@ -124,8 +114,10 @@ public class ObjectScannerStoreTest {
                 obj(3, ".", new Dummy("three"), Dummy.class, TYPE.PROXIED_VALUE),
                 obj(3, "./field", "three", String.class, TYPE.PRIMITIVE_FIELD));
 
+        // excersize
         ProxyList list = store.reStore(new UUID(0, 0), ProxyList.class);
 
+        // verify
         assertNotNull(list);
         assertEquals(3, list.size());
         assertEquals(new Dummy("one"), list.get(0));
@@ -138,8 +130,8 @@ public class ObjectScannerStoreTest {
      * @param elements
      * @throws com.github.illarion.swap4j.store.StoreException
      */
-    private void assertStoreContains(SerializedField... elements) throws StoreException {
-        com.github.illarion.swap4j.CustomAssertions.assertStorageContains(store.getWriter(), elements);
+    private void assertStorageContains(SerializedField... elements) throws StoreException {
+        CustomAssertions.assertStorageContains(store.getWriter(), elements);
     }
 
 

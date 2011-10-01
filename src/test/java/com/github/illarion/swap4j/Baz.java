@@ -6,12 +6,10 @@ import com.github.illarion.swap4j.swap.Swap;
 import java.util.List;
 
 /**
-* TODO Describe class
-* <p/>
-* <p/>
-* Created at: Sep 15, 2011 11:52:36 PM
+* Class with String field and swapped List of same class elements.
+ * For testing purposes.
 *
-* @author Alexey Tigarev
+* @author Alexey Tigarev tigra&at;agile-algorithms.com
 */
 public class Baz {
     private String value = "baz";

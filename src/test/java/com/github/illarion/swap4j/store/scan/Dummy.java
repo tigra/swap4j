@@ -20,6 +20,7 @@ class Dummy {
         return "Dummy{field='" + field + "\'}";
     }
 
+    @SuppressWarnings({"RedundantIfStatement"})
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
@@ -27,7 +28,7 @@ class Dummy {
 
         Dummy dummy = (Dummy) o;
 
-        if (field != null ? !field.equals(dummy.field) : dummy.field != null) return false;
+        if (field != null ? !field.equals(dummy.getField()) : dummy.getField() != null) return false;
 
         return true;
     }
@@ -35,5 +36,9 @@ class Dummy {
     @Override
     public int hashCode() {
         return field != null ? field.hashCode() : 0;
+    }
+
+    public String getField() {
+        return field;
     }
 }
