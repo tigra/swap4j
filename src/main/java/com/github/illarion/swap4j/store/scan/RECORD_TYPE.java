@@ -8,7 +8,7 @@ package com.github.illarion.swap4j.store.scan;
  *
  * @author Alexey Tigarev
  */
-public enum TYPE {
+public enum RECORD_TYPE {
     PRIMITIVE_FIELD,
     PRIMITIVE_VALUE,
     /**

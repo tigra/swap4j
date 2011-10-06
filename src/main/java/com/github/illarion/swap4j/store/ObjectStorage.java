@@ -4,8 +4,8 @@
  */
 package com.github.illarion.swap4j.store;
 
+import com.github.illarion.swap4j.store.scan.FieldRecord;
 import com.github.illarion.swap4j.store.scan.Locator;
-import com.github.illarion.swap4j.store.scan.SerializedField;
 
 import java.util.Iterator;
 import java.util.UUID;
@@ -44,18 +44,18 @@ public interface ObjectStorage extends Iterable<Locator> {
     UUID createUUID();
 
     /**
-     * Get iterator over <code>SerializedField</code>s stored in this <code>Store</code>
+     * Get iterator over <code>FieldRecord</code>s stored in this <code>Store</code>
      * @return iterator
      */
     @Override
     Iterator<Locator> iterator();
 
     /**
-     * Access <code>SerializedField</code> identified by given <code>Locator</code>.
+     * Access <code>FieldRecord</code> identified by given <code>Locator</code>.
      * Used for testing purposes.
      *
      * @param locator Locator identifying the field to load
-     * @return loaded <code>SerializedField</code>
+     * @return loaded <code>FieldRecord</code>
      */
-    SerializedField getSerializedField(Locator locator);
+    FieldRecord getSerializedField(Locator locator);
 }

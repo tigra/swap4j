@@ -28,23 +28,23 @@ public class CustomAssertions {
     }
 
     /**
-     * Verifies that store contains ONLY of specified SerializedField instances
+     * Verifies that store contains ONLY of specified FieldRecord instances
      * @param fieldStorage
      * @param expected
      * @throws com.github.illarion.swap4j.store.StoreException
      */
-    public static void assertStorageContains(FieldStorage fieldStorage, SerializedField... expected) throws StoreException {
+    public static void assertStorageContains(FieldStorage fieldStorage, FieldRecord... expected) throws StoreException {
         Set<Locator> locators = new HashSet<Locator>();
-        for (SerializedField field : expected) {
-            final Locator locator = field.getLocator();
-            SerializedField restored = fieldStorage.read(locator);
-            if (field == null) {
+        for (FieldRecord fieldRecord : expected) {
+            final Locator locator = fieldRecord.getLocator();
+            FieldRecord restored = fieldStorage.read(locator);
+            if (fieldRecord == null) {
                 fail("Don't pass nulls to assertStorageContains!\n" + dumpStoreContents(fieldStorage));
             }
             if (restored == null) {
-                fail("Not found: " + field + "\n" + dumpStoreContents(fieldStorage));
+                fail("Not found: " + fieldRecord + "\n" + dumpStoreContents(fieldStorage));
             }
-            assertEquals("Other object found in store than field.\n" + dumpStoreContents(fieldStorage), field, restored);
+            assertEquals("Other object found in store than fieldRecord.\n" + dumpStoreContents(fieldStorage), fieldRecord, restored);
             locators.add(locator);
         }
         assertGreaterOrEqual("Make sure you don't have repeating IDs when calling assertStoreContains()",
@@ -60,7 +60,7 @@ public class CustomAssertions {
         return builder.append("]").toString();
     }
 
-    public static SerializedField obj(int id, String path, Object value, Class clazz, TYPE type) {
-        return new SerializedField(id, path, value, clazz, type);
+    public static FieldRecord obj(int id, String path, Object value, Class clazz, RECORD_TYPE recordType) {
+        return new FieldRecord(id, path, value, clazz, recordType);
     }
 }

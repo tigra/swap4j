@@ -11,12 +11,12 @@ import java.util.UUID;
  */
 public abstract class DummyFieldStorage implements FieldStorage {
     @Override
-    public void serialize(SerializedField representation) {
+    public void serialize(FieldRecord representation) {
         System.out.println("Scan: " + representation);
     }
 
     @Override
-    public SerializedField read(Locator locator) {
+    public FieldRecord read(Locator locator) {
         throw new UnsupportedOperationException(""); // TODO Implement this method
     }
 
@@ -34,7 +34,7 @@ public abstract class DummyFieldStorage implements FieldStorage {
      * @return all fields of object in order that allow to recreate it
      */
     @Override
-    public List<SerializedField> readAll(UUID uuid) {
+    public List<FieldRecord> readAll(UUID uuid) {
         throw new UnsupportedOperationException(""); // TODO Implement this method
         //return null;
     }

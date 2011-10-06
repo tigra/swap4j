@@ -13,9 +13,9 @@ import java.util.UUID;
  * @author Alexey Tigarev
  */
 public interface FieldStorage extends Iterable<Locator> {
-    void serialize(SerializedField representation);
+    void serialize(FieldRecord representation);
 
-    SerializedField read(Locator locator);
+    FieldRecord read(Locator locator);
 
     /**
      * Read all fields of object identified by given <code>uuid</code>.
@@ -25,7 +25,7 @@ public interface FieldStorage extends Iterable<Locator> {
      * @param uuid UUID identifying object
      * @return all fields of object in order that allow to recreate it
      */
-    List<SerializedField> readAll(UUID uuid);
+    List<FieldRecord> readAll(UUID uuid);
 
     @Override
     Iterator<Locator> iterator();

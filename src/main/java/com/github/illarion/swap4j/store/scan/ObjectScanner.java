@@ -6,8 +6,7 @@ import com.github.illarion.swap4j.swap.ProxyList;
 import com.github.illarion.swap4j.swap.ProxyUtils;
 import com.github.illarion.swap4j.swap.Utils;
 
-import java.lang.reflect.Field;
-import java.lang.reflect.Modifier;
+import java.lang.reflect.*;
 import java.util.*;
 
 /**
@@ -28,24 +27,36 @@ public class ObjectScanner {
 
     public void scanObject(UUID id, Object object) throws IllegalAccessException, StoreException {
         objectContext.addRoot(id);
-        scan(object);
+        scan(object, null);
     }
 
     public void scanObject(Object object) throws StoreException, IllegalAccessException {
         scanObject(null, object);
     }
 
-    private void scan(Object object) throws IllegalAccessException, StoreException {
+    public <E> void  scanObject(ProxyList<E> list, Class<E> elementClass) throws StoreException {
+        scanList(list, elementClass);
+    }
+
+    private void scan(Object object, Field declaringField) throws IllegalAccessException, StoreException {
+        Type type = null;
+        if (null != declaringField) {
+            type = declaringField.getGenericType();
+        }
+        scanObject(object, type);
+    }
+
+    private void scanObject(Object object, Type type) throws StoreException, IllegalAccessException {
         if (object == null) {
 //            System.out.println("Null, nothing to scan");
             return;
         }
 //        System.out.println("Scanning " + object + " of type " + object.getClass());
         Class clazz = object.getClass();
-        if (clazz == String.class) {
+        if (ProxyList.class.isAssignableFrom(clazz)) {
+            scanList((ProxyList)object, type);
+        } else if (clazz == String.class) { // primitive
             visitAtom(object, String.class);
-        } else if (ProxyList.class.isAssignableFrom(clazz)) {
-            visitList((ProxyList) object);
         } else if (Proxy.class.isAssignableFrom(clazz)) {
             visitProxy(clazz, (Proxy) object);
         } else {
@@ -56,6 +67,26 @@ public class ObjectScanner {
                 visitCompoundObject(object, clazz);
             }
         }
+    }
+
+    private void scanList(ProxyList list, Type type) throws StoreException {
+        Class elementClass = null;
+        if (type instanceof ParameterizedType) {
+            elementClass = (Class) ((ParameterizedType) type).getActualTypeArguments()[0];
+        }
+        if (null == elementClass) {
+            elementClass = Object.class; // TODO try to infer in runtime?
+        }
+        scanList(list, elementClass);
+    }
+
+    private void scanList(ProxyList list, Class elementClass) throws StoreException {
+        scanList(null, list, elementClass);
+    }
+
+    private void scanList(UUID uuid, ProxyList list, Class elementClass) throws StoreException {
+        objectContext.addRoot(uuid);
+        visitList(list, list.getClass(), elementClass);
     }
 
     private void visitCompoundObject(Object object, Class clazz) throws IllegalAccessException, StoreException {
@@ -84,27 +115,28 @@ public class ObjectScanner {
     private void visitProxy(Class clazz, Proxy proxy) throws StoreException, IllegalAccessException {
         objectContext.updateId(proxy.getId());
         final Object realObject = proxy.getRealObject();
-        write(objectContext.peek(), realObject, proxy.getClazz(), TYPE.PROXIED_VALUE);
+        write(objectContext.peek(), realObject, proxy.getClazz(), RECORD_TYPE.PROXIED_VALUE);
         visitCompoundObject(realObject, proxy.getClazz());
     }
 
     private void visitEnhancedProxy(Class clazz, Proxy proxy) {
         objectContext.updateId(proxy.getId());
-        write(objectContext.peek(), proxy.getRealObject(), clazz, TYPE.PROXIED_VALUE); // TODO type for enhanced?
+        write(objectContext.peek(), proxy.getRealObject(), clazz, RECORD_TYPE.PROXIED_VALUE); // TODO type for enhanced?
     }
 
     private void visitCompoundField(String name, Object value, Class clazz) throws IllegalAccessException, StoreException {
         Locator locator = objectContext.push(name);
-        write(locator, value, clazz, TYPE.COMPOUND_FIELD);
-        scan(value);
+        write(locator, value, clazz, RECORD_TYPE.COMPOUND_FIELD);
+        scan(value, null);
         objectContext.pop();
     }
 
     private void visitPrimitiveField(String name, Object value) {
         Locator locator = objectContext.push(name);
-        write(locator, value, value.getClass(), TYPE.PRIMITIVE_FIELD);
+        write(locator, value, value.getClass(), RECORD_TYPE.PRIMITIVE_FIELD);
         objectContext.pop();
     }
+
 
     /**
      * @param name
@@ -116,54 +148,58 @@ public class ObjectScanner {
     private void visitProxyField(String name, Proxy proxy, Class clazz) throws IllegalAccessException, StoreException {
         if (null == proxy) {
             objectContext.push(name);
-            write(objectContext.peek(), proxy, clazz, TYPE.PROXIED_FIELD);
+            write(objectContext.peek(), proxy, clazz, RECORD_TYPE.PROXIED_FIELD);
         } else {
             Locator locator = objectContext.push(proxy.getId(), "/" + name);
-            write(locator, proxy, clazz, TYPE.PROXIED_FIELD);
+            write(locator, proxy, clazz, RECORD_TYPE.PROXIED_FIELD);
 //        if (proxy.isLoaded()) {
 //            scan(proxy.getRealObject());
 //        }
             proxy.load();
-            scan(proxy.getRealObject());
+            scan(proxy.getRealObject(), null);
         }
         objectContext.pop();
     }
-
 
     private void visitAtom(Object object, Class clazz) {
-        write(objectContext.peek(), object, clazz, TYPE.PRIMITIVE_VALUE);
+        write(objectContext.peek(), object, clazz, RECORD_TYPE.PRIMITIVE_VALUE);
     }
 
-    private void write(Locator locator, Object value, Class clazz, TYPE type) {
-        SerializedField serializedField = new SerializedField(locator, value, clazz, type);
-//        System.out.println(">" + serializedField);
-        writer.serialize(serializedField);
+    private void write(Locator locator, Object value, Class clazz, RECORD_TYPE recordType) {
+        FieldRecord fieldRecord = new FieldRecord(locator, value, clazz, recordType);
+//        System.out.println(">" + fieldRecord);
+        writer.serialize(fieldRecord);
     }
 
-    private void visitList(ProxyList list) throws StoreException {
+    private void write(Locator locator, Object value, Class clazz, Class elementClass, RECORD_TYPE recordType) {
+        FieldRecord fieldRecord = new FieldRecord(locator, value, clazz, elementClass, recordType);
+//        System.out.println(">" + fieldRecord);
+        writer.serialize(fieldRecord);
+    }
+
+    private void visitList(ProxyList list, Class clazz, Class elementClass) throws StoreException {
         objectContext.push(list.getId(), "[");
-        final Class clazz = list.getClazz();
-        write(objectContext.peek(), list, clazz, TYPE.PROXY_LIST);
+//        final Class clazz = list.getClazz();
+        write(objectContext.peek(), list, clazz, RECORD_TYPE.PROXY_LIST); // TODO store elementclass in Proxy
         int i = 0;
         for (Object obj : list) {
-            visitProxyListElement(obj, i++, clazz);
+            visitProxyListElement(obj, i++, elementClass);
         }
         objectContext.pop();
     }
+
 
     private void visitProxyListElement(Object obj, int pos, Class clazz) throws StoreException {
 //        if (Enhancer.isEnhanced(obj.getClass())) {
-            Proxy proxy = ProxyUtils.getProxy(obj);
-            if (proxy != null) {
-                objectContext.push(proxy.getId(), String.valueOf(pos));
-                proxy.load();
-                write(objectContext.peek(), proxy.getRealObject(), clazz, TYPE.LIST_VALUE);
-                objectContext.pop();
-            } else {
-                throw new NullPointerException("null proxy");
-            }
+        Proxy proxy = ProxyUtils.getProxy(obj);
+        if (proxy != null) {
+            objectContext.push(proxy.getId(), String.valueOf(pos));
+            proxy.load();
+            write(objectContext.peek(), proxy.getRealObject(), clazz, RECORD_TYPE.LIST_VALUE);
+            objectContext.pop();
+        } else {
+            throw new NullPointerException("null proxy");
+        }
 //        }
     }
-
-
 }

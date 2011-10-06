@@ -30,7 +30,7 @@ public class TestObjectScannerObjectStorage extends ObjectFieldStorage {
     }
 
     @Override
-    public SerializedField getSerializedField(Locator locator) {
+    public FieldRecord getSerializedField(Locator locator) {
         return fieldStorage.read(locator);
     }
 

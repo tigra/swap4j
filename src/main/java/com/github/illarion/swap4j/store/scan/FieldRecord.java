@@ -14,39 +14,49 @@ import java.util.UUID;
  *
  * @author Alexey Tigarev
  */
-public class SerializedField<T> implements Comparable<SerializedField<T>> {
+public class FieldRecord<T> implements Comparable<FieldRecord<T>> {
     private T value;
-    private TYPE type;
+    private RECORD_TYPE recordType;
     private Class clazz;
     Locator locator;
+    private Class elementClass = null; // for collections
 
 
-    public SerializedField() {
+    public FieldRecord() {
     }
 
-    public SerializedField(UUID id, String path, T value, Class clazz, TYPE type) {
+    public FieldRecord(UUID id, String path, T value, Class clazz, RECORD_TYPE recordType) {
         checkValue(value);
         this.clazz = clazz;
         this.locator = new Locator(id, path);
-        this.type = type;
+        this.recordType = recordType;
         this.value = value;
     }
 
+    public FieldRecord(Locator locator, T value, Class clazz, Class elementClass, RECORD_TYPE recordType) {
+        checkValue(value);
+        this.clazz = clazz;
+        this.locator = locator;
+        this.recordType = recordType;
+        this.value = value;
+        this.elementClass = elementClass;
+    }
+
     private void checkValue(T value) {
-        if (null != value && value instanceof SerializedField) {
+        if (null != value && value instanceof FieldRecord) {
             throw new IllegalArgumentException("Nested SerializedFields are wrong + " + this + ", " + value);
         }
     }
 
-    public SerializedField(int idNumber, String path, T value, Class clazz, TYPE type) {
-        this(new UUID(0, idNumber), path, value, clazz, type);
+    public FieldRecord(int idNumber, String path, T value, Class clazz, RECORD_TYPE recordType) {
+        this(new UUID(0, idNumber), path, value, clazz, recordType);
     }
 
-    public SerializedField(Locator locator, T value, Class clazz, TYPE type) {
+    public FieldRecord(Locator locator, T value, Class clazz, RECORD_TYPE recordType) {
         checkValue(value);
         this.clazz = clazz;
         this.locator = locator;
-        this.type = type;
+        this.recordType = recordType;
         this.value = value;
     }
 
@@ -69,7 +79,7 @@ public class SerializedField<T> implements Comparable<SerializedField<T>> {
         sb.append("@").append(locator);
         sb.append(" =").append(value);
         sb.append(" c=").append(shortName(clazz));
-        sb.append(" t=").append(type);
+        sb.append(" t=").append(recordType);
         sb.append('}');
         return sb.toString();
     }
@@ -88,9 +98,9 @@ public class SerializedField<T> implements Comparable<SerializedField<T>> {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
 
-        SerializedField that = (SerializedField) o;
+        FieldRecord that = (FieldRecord) o;
 
-        if (type != that.type) return false;
+        if (recordType != that.recordType) return false;
         if (clazz != null ? !clazz.equals(that.clazz) : that.clazz != null) return false;
         if (locator != null ? !locator.equals(that.locator) : that.locator != null) return false;
         if (value != null ? !value.equals(that.value) : that.value != null) return false;
@@ -101,7 +111,7 @@ public class SerializedField<T> implements Comparable<SerializedField<T>> {
     @Override
     public int hashCode() {
         int result = value != null ? value.hashCode() : 0;
-        result = 31 * result + (type != null ? type.hashCode() : 0);
+        result = 31 * result + (recordType != null ? recordType.hashCode() : 0);
         result = 31 * result + (clazz != null ? clazz.hashCode() : 0);
         result = 31 * result + (locator != null ? locator.hashCode() : 0);
         return result;
@@ -112,7 +122,7 @@ public class SerializedField<T> implements Comparable<SerializedField<T>> {
     }
 
     @Override
-    public int compareTo(SerializedField<T> that) {
+    public int compareTo(FieldRecord<T> that) {
         if (this.locator == null) {
             return that.locator == null? 0 : -1;
         }
@@ -154,4 +164,27 @@ public class SerializedField<T> implements Comparable<SerializedField<T>> {
         }
     }
 
+    public RECORD_TYPE getRecordType() {
+        return recordType;
+    }
+
+    String getPath() {
+        return getLocator().getPath();
+    }
+
+    String getIdString() {
+        return getId().toString();
+    }
+
+    String getValueString() {
+        return getValue().toString();
+    }
+
+    int getTypeOrdinal() {
+        return getRecordType().ordinal();
+    }
+
+    String getClassName() {
+        return getClazz().getName();
+    }
 }

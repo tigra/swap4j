@@ -161,7 +161,7 @@ public class ProxyList<T> implements List<T>, Locatable<T> {
     }
 
     @Override
-    public boolean removeAll(Collection<?> objects) {
+   public boolean removeAll(Collection<?> objects) {
         return list.removeAll(objects);
     }
 
@@ -262,4 +262,5 @@ public class ProxyList<T> implements List<T>, Locatable<T> {
                 ", id=" + id +
                 '}';
     }
+
 }

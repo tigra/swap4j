@@ -14,6 +14,10 @@ public class Locator implements Comparable<Locator>{
         this.id = id;
     }
 
+    public Locator(int id, String path) {
+        this(new UUID(0, id), path);
+    }
+
     public String getPath() {
         return path;
     }
@@ -90,7 +94,7 @@ public class Locator implements Comparable<Locator>{
         return this.path.compareTo(that.path);
     }
 
-    public boolean isRoot(SerializedField serializedField) {
+    public boolean isRoot(FieldRecord fieldRecord) {
         return ".".equals(getPath());
     }
 

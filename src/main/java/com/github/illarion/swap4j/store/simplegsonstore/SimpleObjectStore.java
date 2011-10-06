@@ -6,8 +6,8 @@ package com.github.illarion.swap4j.store.simplegsonstore;
 
 import com.github.illarion.swap4j.store.ObjectStorage;
 import com.github.illarion.swap4j.store.StoreException;
+import com.github.illarion.swap4j.store.scan.FieldRecord;
 import com.github.illarion.swap4j.store.scan.Locator;
-import com.github.illarion.swap4j.store.scan.SerializedField;
 import com.github.illarion.swap4j.swap.Proxy;
 import com.github.illarion.swap4j.swap.ProxyUtils;
 import com.github.illarion.swap4j.swap.UUIDGenerator;
@@ -145,7 +145,7 @@ public class SimpleObjectStore implements ObjectStorage {
     }
 
     @Override
-    public SerializedField getSerializedField(Locator locator) {
+    public FieldRecord getSerializedField(Locator locator) {
         throw new UnsupportedOperationException(""); // TODO Implement this method
     }
 }

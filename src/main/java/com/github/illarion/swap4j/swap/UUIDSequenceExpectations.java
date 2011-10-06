@@ -1,8 +1,8 @@
 package com.github.illarion.swap4j.swap;
 
 import com.github.illarion.swap4j.store.scan.FieldStorage;
-import com.github.illarion.swap4j.store.scan.SerializedField;
-import com.github.illarion.swap4j.store.scan.TYPE;
+import com.github.illarion.swap4j.store.scan.RECORD_TYPE;
+import com.github.illarion.swap4j.store.scan.FieldRecord;
 import org.jmock.Expectations;
 import org.jmock.Mockery;
 import org.jmock.Sequence;
@@ -70,12 +70,12 @@ public class UUIDSequenceExpectations extends Expectations {
         inSequence(uuidSequence);
     }
 
-    protected <T> void expectWrite(int id, String path, T value, Class clazz, TYPE recordType) {
+    protected <T> void expectWrite(int id, String path, T value, Class clazz, RECORD_TYPE recordType) {
         expectWrite(new UUID(0, id), path, value, clazz, recordType);
     }
 
-    protected <T> void expectWrite(UUID id, String path, T value, Class clazz, TYPE recordType) {
-        one(objectSerializer).serialize(with(equal(new SerializedField(id, path, value, clazz, recordType))));
+    protected <T> void expectWrite(UUID id, String path, T value, Class clazz, RECORD_TYPE recordType) {
+        one(objectSerializer).serialize(with(equal(new FieldRecord(id, path, value, clazz, recordType))));
         inSequence(serializationSequence);
     }
 }

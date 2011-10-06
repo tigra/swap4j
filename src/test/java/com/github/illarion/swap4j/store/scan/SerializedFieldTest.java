@@ -5,7 +5,7 @@ import org.junit.Test;
 import static junit.framework.Assert.assertEquals;
 
 /**
- * Test for <code>SerializedField</code>
+ * Test for <code>FieldRecord</code>
  *
  * @author Alexey Tigarev
  */
@@ -15,10 +15,10 @@ public class SerializedFieldTest {
     public void testWriteTo() throws NoSuchFieldException, IllegalAccessException {
         // setup
         Dummy dummy = new Dummy("a");
-        SerializedField field = new SerializedField(0, "./field", "b", String.class, TYPE.PRIMITIVE_FIELD);
+        FieldRecord fieldRecord = new FieldRecord(0, "./field", "b", String.class, RECORD_TYPE.PRIMITIVE_FIELD);
 
         // excersize
-        field.writeTo(dummy);
+        fieldRecord.writeTo(dummy);
 
         // verify
         assertEquals(new Dummy("b"), dummy);
@@ -28,10 +28,10 @@ public class SerializedFieldTest {
     public void testWriteToNested() throws NoSuchFieldException, IllegalAccessException {
         // setup
         Nested a = new Nested("a", new Nested("b"));
-        SerializedField field = new SerializedField(0, "./nested/value", "z", String.class, TYPE.PRIMITIVE_FIELD);
+        FieldRecord fieldRecord = new FieldRecord(0, "./nested/value", "z", String.class, RECORD_TYPE.PRIMITIVE_FIELD);
 
         // excersize
-        field.writeTo(a);
+        fieldRecord.writeTo(a);
 
         // verify
         assertEquals(new Nested("a", new Nested("z")), a);

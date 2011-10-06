@@ -47,21 +47,21 @@ public abstract class ObjectFieldStorage implements ObjectStorage {
         try {
             final String path;
             if (ProxyList.class.isAssignableFrom(clazz)) {
-                final SerializedField<ProxyListRecord> serializedField = fieldStorage.read(new Locator(id, ".["));
-                ProxyList proxyList = new ProxyList(swap, serializedField.getClazz(), id, (ProxyListRecord)serializedField.getValue());
+                final FieldRecord<ProxyListRecord> fieldRecord = fieldStorage.read(new Locator(id, ".["));
+                ProxyList proxyList = new ProxyList(swap, fieldRecord.getClazz(), id, (ProxyListRecord) fieldRecord.getValue());
                 return (T)proxyList;
             } else {
-                List<SerializedField> fields = fieldStorage.readAll(id);
-                if (fields.size() == 0) {
+                List<FieldRecord> fieldRecords = fieldStorage.readAll(id);
+                if (fieldRecords.size() == 0) {
                     throw new StoreException("Object not found in ObjectScannerStore.reStore(" + id + ", " + clazz);
                 }
-                T object = (T) fields.get(0).getValue();
-                for (SerializedField field : fields) {
-                    field.writeTo(object);
+                T object = (T) fieldRecords.get(0).getValue();
+                for (FieldRecord fieldRecord : fieldRecords) {
+                    fieldRecord.writeTo(object);
                 }
                 return object;
 //                path = ".";
-//                final SerializedField serializedField = fieldStorage.read(new Locator(id, path));
+//                final FieldRecord serializedField = fieldStorage.read(new Locator(id, path));
 //                if (null == serializedField) {
 //                    throw new StoreException("Object not found in ObjectScannerStore.reStore(" + id + ", " + clazz);
 //                }

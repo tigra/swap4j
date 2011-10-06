@@ -13,6 +13,7 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 
 import java.lang.reflect.Field;
+import java.lang.reflect.Type;
 import java.util.*;
 
 import static junit.framework.Assert.assertEquals;
@@ -50,7 +51,7 @@ public class ObjectScannerTest {
     @Test
     public void testString() throws IllegalAccessException, StoreException {
         context.checking(new Expectations() {{
-            one(objectSerializer).serialize(new SerializedField(null, ".", "hello", String.class, TYPE.PRIMITIVE_VALUE));
+            one(objectSerializer).serialize(new FieldRecord(null, ".", "hello", String.class, RECORD_TYPE.PRIMITIVE_VALUE));
         }});
 
         scanner.scanObject("hello");
@@ -59,7 +60,7 @@ public class ObjectScannerTest {
     @Test
     public void testSimpleObject() throws IllegalAccessException, StoreException {
         context.checking(new Expectations() {{
-            one(objectSerializer).serialize(with(any(SerializedField.class)));
+            one(objectSerializer).serialize(with(any(FieldRecord.class)));
         }});
 
         Dummy dummy = new Dummy("zzz");
@@ -71,13 +72,13 @@ public class ObjectScannerTest {
         final Sequence serializing = context.sequence("serializing");
         context.checking(new UUIDSequenceExpectations(context) {{
 //            expectSequentalUUIDs(4);
-            one(objectSerializer).serialize(with(equal(new SerializedField<String>(null, "./value", "a", String.class, TYPE.PRIMITIVE_FIELD))));
+            one(objectSerializer).serialize(with(equal(new FieldRecord<String>(null, "./value", "a", String.class, RECORD_TYPE.PRIMITIVE_FIELD))));
             inSequence(serializing);
-            one(objectSerializer).serialize(with(equal(new SerializedField<Nested>(null, "./nested", new Nested("b"), Nested.class, TYPE.COMPOUND_FIELD))));
+            one(objectSerializer).serialize(with(equal(new FieldRecord<Nested>(null, "./nested", new Nested("b"), Nested.class, RECORD_TYPE.COMPOUND_FIELD))));
             inSequence(serializing);
-            one(objectSerializer).serialize(with(equal(new SerializedField<String>(null, "./nested/value", "b", String.class, TYPE.PRIMITIVE_FIELD))));
+            one(objectSerializer).serialize(with(equal(new FieldRecord<String>(null, "./nested/value", "b", String.class, RECORD_TYPE.PRIMITIVE_FIELD))));
             inSequence(serializing);
-            one(objectSerializer).serialize(with(equal(new SerializedField<Nested>(null, "./nested/nested", null, Nested.class, TYPE.COMPOUND_FIELD))));
+            one(objectSerializer).serialize(with(equal(new FieldRecord<Nested>(null, "./nested/nested", null, Nested.class, RECORD_TYPE.COMPOUND_FIELD))));
             inSequence(serializing);
         }});
 
@@ -95,10 +96,10 @@ public class ObjectScannerTest {
             expectSequentalUUIDs(0);
             Proxy<ProxyNested> nestedProxy = new Proxy<ProxyNested>(new UUID(0, 0), store, ProxyNested.class);
 
-            expectWrite(null, "./field", "a", String.class, TYPE.PRIMITIVE_FIELD);
-            expectWrite(0, "./proxy", nestedProxy, ProxyNested.class, TYPE.PROXIED_FIELD);
-            expectWrite(0, "./proxy/field", "b", String.class, TYPE.PRIMITIVE_FIELD);
-            expectWrite(0, "./proxy/proxy", null, ProxyNested.class, TYPE.PROXIED_FIELD);
+            expectWrite(null, "./field", "a", String.class, RECORD_TYPE.PRIMITIVE_FIELD);
+            expectWrite(0, "./proxy", nestedProxy, ProxyNested.class, RECORD_TYPE.PROXIED_FIELD);
+            expectWrite(0, "./proxy/field", "b", String.class, RECORD_TYPE.PRIMITIVE_FIELD);
+            expectWrite(0, "./proxy/proxy", null, ProxyNested.class, RECORD_TYPE.PROXIED_FIELD);
         }});
 
         store.setUuidGenerator(uuidGenerator);
@@ -121,23 +122,23 @@ public class ObjectScannerTest {
         context.checking(new UUIDSequenceExpectations(context, uuidGenerator, objectSerializer) {{
 //            one(objectSerializer).serialize(with(any(SerializedList.class)));
             expectSequentalUUIDs(1, 3);
-            expectWrite(0, ".[", list, Dummy.class, TYPE.PROXY_LIST);
+            expectWrite(0, ".[", list, ProxyList.class, RECORD_TYPE.PROXY_LIST);
 
-            expectWrite(1, ".[0", new Dummy("one"), Dummy.class, TYPE.LIST_VALUE);
-//            expectWrite(1, ".[0/field", "one", String.class, TYPE.PRIMITIVE_FIELD);
+            expectWrite(1, ".[0", new Dummy("one"), Dummy.class, RECORD_TYPE.LIST_VALUE);
+//            expectWrite(1, ".[0/field", "one", String.class, RECORD_TYPE.PRIMITIVE_FIELD);
 
-            expectWrite(2, ".[1", new Dummy("two"), Dummy.class, TYPE.LIST_VALUE);
-//            expectWrite(2, ".[1/field", "two", String.class, TYPE.PRIMITIVE_FIELD);
+            expectWrite(2, ".[1", new Dummy("two"), Dummy.class, RECORD_TYPE.LIST_VALUE);
+//            expectWrite(2, ".[1/field", "two", String.class, RECORD_TYPE.PRIMITIVE_FIELD);
 
-            expectWrite(3, ".[2", new Dummy("three"), Dummy.class, TYPE.LIST_VALUE);
-//            expectWrite(3, ".[2/field", "three", String.class, TYPE.PRIMITIVE_FIELD);
+            expectWrite(3, ".[2", new Dummy("three"), Dummy.class, RECORD_TYPE.LIST_VALUE);
+//            expectWrite(3, ".[2/field", "three", String.class, RECORD_TYPE.PRIMITIVE_FIELD);
         }});
 
         list.add(new Dummy("one"));
         list.add(new Dummy("two"));
         list.add(new Dummy("three"));
 
-        scanner.scanObject(list);
+        scanner.scanObject(list, Dummy.class);
     }
 
 
@@ -159,8 +160,8 @@ public class ObjectScannerTest {
         context.checking(new UUIDSequenceExpectations(context, uuidGenerator, objectSerializer) {{
 //            expectSequentalUUIDs(1);
 
-//            expectWrite(null, ".", new ObjectWithTransientField(), ObjectWithTransientField.class, TYPE.COMPOUND_VALUE);
-            expectWrite(null, "./nontransientField", "nontransient", String.class, TYPE.PRIMITIVE_FIELD);
+//            expectWrite(null, ".", new ObjectWithTransientField(), ObjectWithTransientField.class, RECORD_TYPE.COMPOUND_VALUE);
+            expectWrite(null, "./nontransientField", "nontransient", String.class, RECORD_TYPE.PRIMITIVE_FIELD);
 
         }});
 
