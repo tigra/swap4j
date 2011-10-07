@@ -1,5 +1,7 @@
 package com.github.illarion.swap4j.store.scan;
 
+import com.github.illarion.swap4j.swap.Swap;
+
 import java.util.Iterator;
 import java.util.List;
 import java.util.UUID;
@@ -42,4 +44,7 @@ public interface FieldStorage extends Iterable<Locator> {
      * @param locator which field to remove
      */
     void remove(Locator locator);
+
+    @Deprecated
+    void setSwap(Swap swap);
 }

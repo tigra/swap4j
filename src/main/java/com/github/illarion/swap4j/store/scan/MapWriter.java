@@ -1,5 +1,7 @@
 package com.github.illarion.swap4j.store.scan;
 
+import com.github.illarion.swap4j.swap.Swap;
+
 import java.util.*;
 
 /**
@@ -69,5 +71,9 @@ public class MapWriter implements FieldStorage {
         }
         Collections.sort(fieldsRead);
         return fieldsRead;
+    }
+
+    @Override
+    public void setSwap(Swap swap) {
     }
 }

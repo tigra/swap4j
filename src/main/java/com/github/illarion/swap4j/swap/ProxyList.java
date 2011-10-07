@@ -23,15 +23,15 @@ public class ProxyList<T> implements List<T>, Locatable<T> {
     private final Swap swap;
     private ObjectStorage objectStore;
 
-    public Class<T> getClazz() {
-        return clazz;
+    public Class<T> getElementClass() {
+        return elementClass;
     }
 
-    private final Class<T> clazz;
+    private final Class<T> elementClass;
 
-    public ProxyList(Swap swap, Class<T> clazz, UUID id, ProxyListRecord proxyListRecord) throws StoreException {
+    public ProxyList(Swap swap, Class<T> elementClass, UUID id, ProxyListRecord proxyListRecord) throws StoreException {
         this.swap = swap;
-        this.clazz = clazz;
+        this.elementClass = elementClass;
         this.id = id;
         this.objectStore = swap.getStore();
         createProxies(proxyListRecord);
@@ -41,7 +41,7 @@ public class ProxyList<T> implements List<T>, Locatable<T> {
         for (Object listElementId : proxyListRecord) {
 //            list.add(new Proxy((UUID)listElementId, swap.getStore(), clazz));
 //            list.add(swap.wrap())
-            list.add(emptyProxy((UUID)listElementId, clazz));
+            list.add(emptyProxy((UUID)listElementId, elementClass));
         }
     }
 
@@ -54,16 +54,16 @@ public class ProxyList<T> implements List<T>, Locatable<T> {
 
     private UUID id;
 
-    public ProxyList(Swap swap, Class<T> clazz) throws StoreException {
+    public ProxyList(Swap swap, Class<T> elementClass) throws StoreException {
         this.swap = swap;
-        this.clazz = clazz;
+        this.elementClass = elementClass;
         this.objectStore = swap.getStore();
         this.id = objectStore.createUUID();
         unload();
     }
 
-    public ProxyList(Swap swap, Class<T> clazz, UUID id) throws StoreException {
-        this.clazz = clazz;
+    public ProxyList(Swap swap, Class<T> elementClass, UUID id) throws StoreException {
+        this.elementClass = elementClass;
         this.id = id;
         this.swap = swap;
         this.objectStore = swap.getStore();
@@ -87,14 +87,14 @@ public class ProxyList<T> implements List<T>, Locatable<T> {
 
     @Override
     public void unload() throws StoreException {
-        swap.getStore().store(id, this);
+        swap.getStore().storeList(id, this, this.elementClass);
     }
 
     @Override
     public boolean add(T e) {
         T wrapped;
         try {
-            wrapped = swap.wrap(e, clazz);
+            wrapped = swap.wrap(e, elementClass);
             return list.add(wrapped);
         } catch (StoreException ex) {
             logger.log(Level.SEVERE, null, ex);
@@ -223,7 +223,7 @@ public class ProxyList<T> implements List<T>, Locatable<T> {
 
         ProxyList proxyList = (ProxyList) o;
 
-        if (clazz != null ? !clazz.equals(proxyList.clazz) : proxyList.clazz != null) return false;
+        if (elementClass != null ? !elementClass.equals(proxyList.elementClass) : proxyList.elementClass != null) return false;
         if (id != null ? !id.equals(proxyList.id) : proxyList.id != null) return false;
         if (listsEqual(proxyList)) return false;
         if (swap != null ? !swap.equals(proxyList.swap) : proxyList.swap != null) return false;
@@ -247,7 +247,7 @@ public class ProxyList<T> implements List<T>, Locatable<T> {
     public int hashCode() {
         int result = list != null ? list.hashCode() : 0;
         result = 31 * result + (swap != null ? swap.hashCode() : 0);
-        result = 31 * result + (clazz != null ? clazz.hashCode() : 0);
+        result = 31 * result + (elementClass != null ? elementClass.hashCode() : 0);
         result = 31 * result + (id != null ? id.hashCode() : 0);
         return result;
     }
@@ -256,7 +256,7 @@ public class ProxyList<T> implements List<T>, Locatable<T> {
     @Override
     public String toString() {
         return "ProxyList{" +
-                "clazz=" + clazz +
+                "clazz=" + elementClass +
                 ", size=" + ((null == list) ? "null" : list.size()) +
                 ", swap=" + swap +
                 ", id=" + id +

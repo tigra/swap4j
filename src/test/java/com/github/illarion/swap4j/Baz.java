@@ -48,4 +48,8 @@ public class Baz {
         sb.append('}');
         return sb.toString();
     }
+
+    public Object getValue() {
+        return value;
+    }
 }

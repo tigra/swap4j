@@ -20,7 +20,7 @@ public class SimpleTestH2FieldStorage extends AbstractSimpleTest {
 
     @Override
     protected ObjectStorage createObjectStore() throws ClassNotFoundException, SQLException {
-        return new TestObjectScannerObjectStorage(swap, new H2FieldStorage(), new UUIDGenerator());
+        return new TestObjectScannerObjectStorage(swap, new H2FieldStorage(swap), new UUIDGenerator());
     }
 
 }

@@ -8,9 +8,7 @@ import com.github.illarion.swap4j.store.ObjectStorage;
 import com.github.illarion.swap4j.store.StoreException;
 import com.github.illarion.swap4j.store.scan.FieldRecord;
 import com.github.illarion.swap4j.store.scan.Locator;
-import com.github.illarion.swap4j.swap.Proxy;
-import com.github.illarion.swap4j.swap.ProxyUtils;
-import com.github.illarion.swap4j.swap.UUIDGenerator;
+import com.github.illarion.swap4j.swap.*;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 
@@ -31,6 +29,10 @@ import org.apache.commons.io.IOUtils;
  * @author shaman
  */
 public class SimpleObjectStore implements ObjectStorage {
+    @Override
+    public void setSwap(Swap swap) {
+        // TODO
+    }
 
     private final File dir;
     private Gson gson = new GsonBuilder().create();
@@ -147,5 +149,11 @@ public class SimpleObjectStore implements ObjectStorage {
     @Override
     public FieldRecord getSerializedField(Locator locator) {
         throw new UnsupportedOperationException(""); // TODO Implement this method
+    }
+
+    @Override
+    public <T> void storeList(UUID uuid, ProxyList proxyList, Class elementClass) throws StoreException {
+        throw new UnsupportedOperationException(""); // TODO Implement this method
+
     }
 }

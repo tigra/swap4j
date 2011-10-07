@@ -2,6 +2,7 @@ package com.github.illarion.swap4j.store.scan;
 
 import com.github.illarion.swap4j.swap.Utils;
 
+import javax.xml.stream.events.EntityDeclaration;
 import java.lang.reflect.Field;
 import java.util.List;
 import java.util.UUID;
@@ -186,5 +187,13 @@ public class FieldRecord<T> implements Comparable<FieldRecord<T>> {
 
     String getClassName() {
         return getClazz().getName();
+    }
+
+    public String getElementClassName() {
+        return null == elementClass ? null : elementClass.getName();
+    }
+
+    public Class getElementClass() {
+        return elementClass;
     }
 }

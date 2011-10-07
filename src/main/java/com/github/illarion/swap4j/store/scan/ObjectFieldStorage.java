@@ -20,9 +20,11 @@ public abstract class ObjectFieldStorage implements ObjectStorage {
     UUIDGenerator uuidGenerator;
     private Swap swap;
 
+    @Override
     @Deprecated // TODO Decouple Swap from ObjectStorage
     public void setSwap(Swap swap) {
         this.swap = swap;
+        fieldStorage.setSwap(swap);
     }
 
     protected ObjectFieldStorage(FieldStorage fieldStorage, UUIDGenerator uuidGenerator, Swap swap) {
@@ -90,10 +92,22 @@ public abstract class ObjectFieldStorage implements ObjectStorage {
         try {
             synchronized (fieldStorage) {
                 fieldStorage.clean(id);
-                scanner.scanObject(id, object);
+                if (object instanceof ProxyList) {
+                    storeList(id, (ProxyList)object, Object.class); //TODO proper elementClass
+                } else {
+                    scanner.scanObject(id, object);
+                }
             }
         } catch (IllegalAccessException e) {
             throw new StoreException("IllegalAccessException thrown when analysing object " + object, e);
+        }
+    }
+
+    @Override
+    public <T> void storeList(UUID uuid, ProxyList proxyList, Class elementClass) throws StoreException {
+        synchronized (fieldStorage) {
+            fieldStorage.clean(uuid);
+            scanner.scanObject(proxyList, elementClass);
         }
     }
 }

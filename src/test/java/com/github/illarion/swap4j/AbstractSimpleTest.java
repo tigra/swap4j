@@ -2,7 +2,6 @@ package com.github.illarion.swap4j;
 
 import com.github.illarion.swap4j.store.ObjectStorage;
 import com.github.illarion.swap4j.store.StoreException;
-import com.github.illarion.swap4j.store.scan.TestObjectScannerObjectStorage;
 import com.github.illarion.swap4j.swap.Swap;
 import org.junit.Before;
 import org.junit.Test;
@@ -34,6 +33,7 @@ public abstract class AbstractSimpleTest {
     public void setUp() throws ClassNotFoundException, SQLException {
         objectStore = createObjectStore();
         swap = new Swap(objectStore);
+        objectStore.setSwap(swap);
     }
 
     @Test
@@ -60,6 +60,36 @@ public abstract class AbstractSimpleTest {
 
         list.get(1).change("5");
 
+    }
+
+    @Test
+    public void testSimpleNestedList() throws StoreException {
+        Baz root = swap.wrap(new Baz(swap, "root"), Baz.class);
+        Baz inside = swap.wrap(new Baz(swap, "inside"), Baz.class);
+        Baz deepInside = swap.wrap(new Baz(swap, "deepInside"), Baz.class);
+        root.add(inside);
+        inside.add(deepInside);
+
+        assertEquals(1, root.getChildren().size());
+//        assertEquals("Baz{(inside)[Baz{(deepInside)}]}",
+//                root.getChildren().get(0).toString());
+        assertEquals("inside", root.getChildren().get(0).getValue());
+        assertEquals(1, inside.getChildren().size());
+
+        assertEquals("deepInside",
+                root.getChildren().get(0).getChildren().get(0).getValue());
+        assertEquals(0, deepInside.getChildren().size());
+    }
+
+    @Test
+    public void testSimplestNestedList() throws StoreException {
+        Baz root = swap.wrap(new Baz(swap, "root"), Baz.class);
+        Baz inside = swap.wrap(new Baz(swap, "inside"), Baz.class);
+        root.add(inside);
+
+        assertEquals(1, root.getChildren().size());
+        assertEquals("inside", root.getChildren().get(0).getValue());
+        assertEquals(0, inside.getChildren().size());
     }
 
     @Test

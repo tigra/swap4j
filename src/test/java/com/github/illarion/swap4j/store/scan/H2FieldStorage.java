@@ -1,5 +1,9 @@
 package com.github.illarion.swap4j.store.scan;
 
+import com.github.illarion.swap4j.store.StoreException;
+import com.github.illarion.swap4j.swap.ProxyList;
+import com.github.illarion.swap4j.swap.Swap;
+
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
 import java.sql.*;
@@ -14,19 +18,38 @@ import java.util.UUID;
  * @author Alexey Tigarev tigra@agile-algorithms.com
  */
 public class H2FieldStorage implements FieldStorage {
+    private static final String CREATE_TABLE_FIELDS
+            = "CREATE TABLE IF NOT EXISTS Fields "
+                + "(id VARCHAR(80), "
+                + "path VARCHAR(100), "
+                + "value VARCHAR(200), "
+                + "type TINYINT, "
+                + "class VARCHAR(100), "
+                + "elementClass VARCHAR(100),"
+                + " PRIMARY KEY(id, path));";
+
     private Connection connection;
+    private Swap swap;
 
     public H2FieldStorage() throws ClassNotFoundException, SQLException {
+        this(null);
+    }
+
+    public H2FieldStorage(Swap swap) throws ClassNotFoundException, SQLException {
         Class.forName("org.h2.Driver");
         connection = DriverManager.getConnection("jdbc:h2:~/test");
         initDatabase();
+        this.swap = swap;
+    }
+
+    @Override
+    public void setSwap(Swap swap) {
+        this.swap = swap;
     }
 
     private void initDatabase() throws SQLException {
         Statement statement = connection.createStatement();
-        statement.executeUpdate("CREATE TABLE IF NOT EXISTS Fields "
-                + "(id VARCHAR(80), path VARCHAR(100), value VARCHAR(200),"
-                + " type TINYINT, class VARCHAR(100), PRIMARY KEY(id, path));");
+        statement.executeUpdate(CREATE_TABLE_FIELDS);
     }
 
     /**
@@ -65,12 +88,14 @@ public class H2FieldStorage implements FieldStorage {
                     + whereClause(locator));
             rs.next();
             if (rs.getInt(1) == 0) {
-                PreparedStatement preparedStatement = connection.prepareStatement("INSERT INTO FIELDS VALUES (?, ?, ?, ?, ?)");
+                PreparedStatement preparedStatement = connection.prepareStatement(
+                        "INSERT INTO FIELDS VALUES (?, ?, ?, ?, ?, ?)");
                 preparedStatement.setString(1, representation.getIdString());
                 preparedStatement.setString(2, representation.getPath());
                 preparedStatement.setString(3, representation.getValueString());
                 preparedStatement.setInt(4, representation.getTypeOrdinal());
                 preparedStatement.setString(5, representation.getClassName());
+                preparedStatement.setString(6, representation.getElementClassName());
                 preparedStatement.addBatch();
                 int[] updateCounts = preparedStatement.executeBatch();
             } else {
@@ -116,6 +141,9 @@ public class H2FieldStorage implements FieldStorage {
         } catch (InvocationTargetException e) {
             e.printStackTrace();
             return null; // TODO own exception
+        } catch (StoreException e) {
+            e.printStackTrace();
+            return null; // TODO own exception
         }
     }
 
@@ -158,23 +186,36 @@ public class H2FieldStorage implements FieldStorage {
         } catch (InvocationTargetException e) {
             e.printStackTrace();
             return null; // TODO own exception
+        } catch (StoreException e) {
+            e.printStackTrace();
+            return null; // TODO own exception
         }
     }
 
-    private FieldRecord rsToSF(Locator locator, ResultSet rs) throws SQLException, ClassNotFoundException, NoSuchMethodException, InvocationTargetException, InstantiationException, IllegalAccessException {
-        Class<?> clazz = Class.forName(rs.getString("class"));
-        return new FieldRecord(locator, valueFromString(rs.getString("value"), clazz), clazz, RECORD_TYPE.values()[rs.getInt("type")]);
+    private FieldRecord rsToSF(Locator locator, ResultSet rs) throws SQLException, ClassNotFoundException, NoSuchMethodException, InvocationTargetException, InstantiationException, IllegalAccessException, StoreException {
+        Class<?> clazz = getClassFromResultSet(rs, "class");
+        Class elementClass = getClassFromResultSet(rs, "elementClass");
+        Object value = valueFromString(rs.getString("value"), clazz, elementClass);
+        return new FieldRecord(locator, value, clazz, elementClass, RECORD_TYPE.values()[rs.getInt("type")]);
     }
 
-    private FieldRecord readSerializedFieldFromResultSet(ResultSet rs) throws SQLException, ClassNotFoundException, InvocationTargetException, NoSuchMethodException, InstantiationException, IllegalAccessException {
+    private Class<?> getClassFromResultSet(ResultSet rs, String fieldName) throws ClassNotFoundException, SQLException {
+        String className = rs.getString(fieldName);
+        return null == className ? null : Class.forName(className);
+    }
+
+    private FieldRecord readSerializedFieldFromResultSet(ResultSet rs) throws SQLException, ClassNotFoundException, InvocationTargetException, NoSuchMethodException, InstantiationException, IllegalAccessException, StoreException {
         Class<?> clazz = Class.forName(rs.getString("class"));
-        return new FieldRecord(UUID.fromString(rs.getString("id")), rs.getString("path"), valueFromString(rs.getString("value"), clazz),
+        return new FieldRecord(UUID.fromString(rs.getString("id")), rs.getString("path"), valueFromString(rs.getString("value"), clazz, null),
                 clazz, RECORD_TYPE.values()[rs.getInt("type")]);
     }
 
-    private Object valueFromString(String string, Class clazz) throws NoSuchMethodException, InvocationTargetException, IllegalAccessException, InstantiationException {
+    private Object valueFromString(String string, Class clazz, Class<Object> elementClass) throws NoSuchMethodException, InvocationTargetException, IllegalAccessException, InstantiationException, StoreException {
         if (String.class.equals(clazz)) {
             return string;
+        } if (ProxyList.class.isAssignableFrom(clazz)) {
+            List proxyList = swap.newWrapList(elementClass);
+            return proxyList;
         } else {
             Constructor constructor = clazz.getConstructor();
             return constructor.newInstance();
