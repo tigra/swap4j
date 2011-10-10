@@ -4,7 +4,6 @@ import com.github.illarion.swap4j.store.StoreException;
 import com.github.illarion.swap4j.store.scan.MapWriter;
 import com.github.illarion.swap4j.store.scan.TestObjectScannerObjectStorage;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 
 import static junit.framework.Assert.assertEquals;
@@ -25,7 +24,7 @@ public class ProxyTest {
 
     @Before
     public void setUp() throws Exception {
-        storage = new TestObjectScannerObjectStorage(null, new MapWriter(), new UUIDGenerator());
+        storage = new TestObjectScannerObjectStorage(null, new MapWriter(), new RandomUuidGenerator());
         swap = new Swap(storage);
         storage.setSwap(swap);
     }

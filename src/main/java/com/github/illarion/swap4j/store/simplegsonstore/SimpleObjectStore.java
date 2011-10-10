@@ -36,7 +36,7 @@ public class SimpleObjectStore implements ObjectStorage {
 
     private final File dir;
     private Gson gson = new GsonBuilder().create();
-    private UUIDGenerator uuidGenerator = new UUIDGenerator();
+    private UUIDGenerator uuidGenerator = new RandomUuidGenerator();
 
     public SimpleObjectStore(File dir) throws StoreException {
         this.dir = dir;
@@ -152,7 +152,7 @@ public class SimpleObjectStore implements ObjectStorage {
     }
 
     @Override
-    public <T> void storeList(UUID uuid, ProxyList proxyList, Class elementClass) throws StoreException {
+    public <T> void storeProxyList(UUID uuid, ProxyList proxyList, Class elementClass) throws StoreException {
         throw new UnsupportedOperationException(""); // TODO Implement this method
 
     }

@@ -64,5 +64,5 @@ public interface ObjectStorage extends Iterable<Locator> {
     @Deprecated // TODO Decouple Swap from ObjectStorage
     void setSwap(Swap swap);
 
-    <T> void storeList(UUID uuid, ProxyList proxyList, Class elementClass) throws StoreException;
+    <T> void storeProxyList(UUID uuid, ProxyList proxyList, Class elementClass) throws StoreException;
 }

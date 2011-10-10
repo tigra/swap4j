@@ -2,11 +2,11 @@ package com.github.illarion.swap4j.swap;
 
 import java.util.UUID;
 
-public class UUIDGenerator {
-    public UUIDGenerator() {
-    }
-
-    public UUID createUUID() {
-        return UUID.randomUUID();
-    }
+/**
+ * TODO Describe class
+ *
+ * @author Alexey Tigarev tigra@agile-algorithms.com
+ */
+public interface UUIDGenerator {
+    UUID createUUID();
 }

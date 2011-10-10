@@ -1,5 +1,6 @@
 package com.github.illarion.swap4j.store.scan;
 
+import com.github.illarion.swap4j.AnyObject;
 import com.github.illarion.swap4j.swap.Utils;
 
 import javax.xml.stream.events.EntityDeclaration;
@@ -42,6 +43,11 @@ public class FieldRecord<T> implements Comparable<FieldRecord<T>> {
         this.value = value;
         this.elementClass = elementClass;
     }
+
+    public FieldRecord(int id, String path, T value, Class clazz, Class elementClass, RECORD_TYPE record_type) {
+        this(new Locator(id, path), value, clazz, elementClass, record_type);
+    }
+
 
     private void checkValue(T value) {
         if (null != value && value instanceof FieldRecord) {
@@ -104,9 +110,16 @@ public class FieldRecord<T> implements Comparable<FieldRecord<T>> {
         if (recordType != that.recordType) return false;
         if (clazz != null ? !clazz.equals(that.clazz) : that.clazz != null) return false;
         if (locator != null ? !locator.equals(that.locator) : that.locator != null) return false;
-        if (value != null ? !value.equals(that.value) : that.value != null) return false;
+        if (value != null ? !valuesEqual(that) : that.value != null) return false;
 
         return true;
+    }
+
+    private boolean valuesEqual(FieldRecord that) {
+//        if (this.value instanceof AnyObject || that.value instanceof AnyObject) {
+//            return true; // TODO remove this dirty hack, use e.g. hamcrest matchers instead
+//        }
+        return value.equals(that.value);
     }
 
     @Override

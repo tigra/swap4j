@@ -2,10 +2,7 @@ package com.github.illarion.swap4j.store.scan;
 
 import com.github.illarion.swap4j.CustomAssertions;
 import com.github.illarion.swap4j.store.StoreException;
-import com.github.illarion.swap4j.swap.ProxyList;
-import com.github.illarion.swap4j.swap.Swap;
-import com.github.illarion.swap4j.swap.UUIDGenerator;
-import com.github.illarion.swap4j.swap.UUIDSequenceExpectations;
+import com.github.illarion.swap4j.swap.*;
 import org.jmock.Mockery;
 import org.jmock.integration.junit4.JMock;
 import org.jmock.integration.junit4.JUnit4Mockery;
@@ -16,7 +13,7 @@ import org.junit.runner.RunWith;
 
 import java.util.UUID;
 
-import static com.github.illarion.swap4j.CustomAssertions.obj;
+import static com.github.illarion.swap4j.CustomAssertions.*;
 import static junit.framework.Assert.*;
 
 /**
@@ -39,7 +36,7 @@ public class ObjectScannerStoreTest {
 
     @Before
     public void setUp() {
-        uuidGenerator = context.mock(UUIDGenerator.class);
+        uuidGenerator = context.mock(RandomUuidGenerator.class);
         store = new TestObjectScannerObjectStorage(null, new MapWriter(), uuidGenerator);
         swap = new Swap(store);
         store.setSwap(swap);
@@ -93,13 +90,31 @@ public class ObjectScannerStoreTest {
         list.add(new Dummy("three"));
 
         // verify
-        assertStorageContains(obj(0, ".[", list, ProxyList.class, RECORD_TYPE.PROXY_LIST),
-                obj(1, ".", new Dummy("one"), Dummy.class, RECORD_TYPE.PROXIED_VALUE),
-                obj(1, "./field", "one", String.class, RECORD_TYPE.PRIMITIVE_FIELD),
-                obj(2, ".", new Dummy("two"), Dummy.class, RECORD_TYPE.PROXIED_VALUE),
-                obj(2, "./field", "two", String.class, RECORD_TYPE.PRIMITIVE_FIELD),
-                obj(3, ".", new Dummy("three"), Dummy.class, RECORD_TYPE.PROXIED_VALUE),
-                obj(3, "./field", "three", String.class, RECORD_TYPE.PRIMITIVE_FIELD));
+        CustomAssertions.assertStorageContains(store.getWriter(),
+                at(0, ".[",
+                    valueIs(list).and(elementClassIs(Dummy.class)).and(clazzIs(ProxyList.class)).and(recordTypeIsProxyList())),
+                at(1, ".",
+                    valueIs(new Dummy("one")).and(clazzIs(Dummy.class)).and(recordTypeIsProxiedValue())),
+                at(1, "./field",
+                    valueIs("one").and(clazzIs(String.class)).and(recordTypeIsPrimitiveField())),
+                at(2, ".",
+                    valueIs(new Dummy("two")).and(clazzIs(Dummy.class)).and(recordTypeIsProxiedValue())),
+                at(2, "./field",
+                    valueIs("two").and(clazzIs(String.class)).and(recordTypeIsPrimitiveField())),
+                at(3, ".",
+                    valueIs(new Dummy("three")).and(clazzIs(Dummy.class)).and(recordTypeIsProxiedValue())),
+                at(3, "./field",
+                    valueIs("three").and(clazzIs(String.class)).and(recordTypeIsPrimitiveField()))
+        );
+
+
+//        assertStorageContains(obj(0, ".[", list, ProxyList.class, RECORD_TYPE.PROXY_LIST),
+//                obj(1, ".", new Dummy("one"), Dummy.class, RECORD_TYPE.PROXIED_VALUE),
+//                obj(1, "./field", "one", String.class, RECORD_TYPE.PRIMITIVE_FIELD),
+//                obj(2, ".", new Dummy("two"), Dummy.class, RECORD_TYPE.PROXIED_VALUE),
+//                obj(2, "./field", "two", String.class, RECORD_TYPE.PRIMITIVE_FIELD),
+//                obj(3, ".", new Dummy("three"), Dummy.class, RECORD_TYPE.PROXIED_VALUE),
+//                obj(3, "./field", "three", String.class, RECORD_TYPE.PRIMITIVE_FIELD));
     }
 
     @Test
@@ -130,6 +145,7 @@ public class ObjectScannerStoreTest {
      * @param elements
      * @throws com.github.illarion.swap4j.store.StoreException
      */
+    @Deprecated
     private void assertStorageContains(FieldRecord... elements) throws StoreException {
         CustomAssertions.assertStorageContains(store.getWriter(), elements);
     }

@@ -27,7 +27,7 @@ public class UUIDGeneratorTest {
 
     @Test
     public void testSpecificUUIDs() {
-        final UUIDGenerator uuidGenerator = context.mock(UUIDGenerator.class);
+        final UUIDGenerator uuidGenerator = context.mock(RandomUuidGenerator.class);
 
         context.checking(new UUIDSequenceExpectations(context, uuidGenerator, null) {{
             expectUUID("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa");
@@ -42,7 +42,7 @@ public class UUIDGeneratorTest {
 
     @Test
     public void testSequentalUUIDs() {
-        final UUIDGenerator uuidGenerator = context.mock(UUIDGenerator.class);
+        final UUIDGenerator uuidGenerator = context.mock(RandomUuidGenerator.class);
 
         context.checking(new UUIDSequenceExpectations(context, uuidGenerator, null) {{
             expectSequentalUUIDs(4);

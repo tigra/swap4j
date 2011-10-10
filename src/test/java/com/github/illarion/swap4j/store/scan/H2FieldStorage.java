@@ -3,6 +3,7 @@ package com.github.illarion.swap4j.store.scan;
 import com.github.illarion.swap4j.store.StoreException;
 import com.github.illarion.swap4j.swap.ProxyList;
 import com.github.illarion.swap4j.swap.Swap;
+import com.github.illarion.swap4j.swap.UUIDGenerator;
 
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
@@ -17,7 +18,7 @@ import java.util.UUID;
  *
  * @author Alexey Tigarev tigra@agile-algorithms.com
  */
-public class H2FieldStorage implements FieldStorage {
+public class H2FieldStorage implements FieldStorage, UUIDGenerator {
     private static final String CREATE_TABLE_FIELDS
             = "CREATE TABLE IF NOT EXISTS Fields "
                 + "(id VARCHAR(80), "
@@ -30,6 +31,7 @@ public class H2FieldStorage implements FieldStorage {
 
     private Connection connection;
     private Swap swap;
+    private int currentUuid = 0;
 
     public H2FieldStorage() throws ClassNotFoundException, SQLException {
         this(null);
@@ -37,9 +39,30 @@ public class H2FieldStorage implements FieldStorage {
 
     public H2FieldStorage(Swap swap) throws ClassNotFoundException, SQLException {
         Class.forName("org.h2.Driver");
-        connection = DriverManager.getConnection("jdbc:h2:~/test");
+        connection = DriverManager.getConnection("jdbc:h2:tcp://localhost/~/test");
         initDatabase();
         this.swap = swap;
+    }
+
+    @Override
+    public UUID createUUID() {
+        try {
+            while (uuidPresent(currentUuid)) {
+                currentUuid++;
+            }
+            return new UUID(0, currentUuid);
+        } catch (SQLException e) {
+            e.printStackTrace();
+            return null;
+        }
+    }
+
+    private boolean uuidPresent(int currentUuid) throws SQLException {
+        Statement statement = connection.createStatement();
+        String uuidStr = new UUID(0, currentUuid).toString();
+        ResultSet rs = statement.executeQuery("select id from FIELDS where id='" + uuidStr + "'");
+        return rs.next();
+//        return !rs.isAfterLast();
     }
 
     @Override
@@ -61,7 +84,7 @@ public class H2FieldStorage implements FieldStorage {
     @Override
     public boolean clean(UUID uuid) {
         try {
-            Statement statement = connection.createStatement();
+            Statement statement = connection.createStatement();   // TODO log count of existing fields
             int result = statement.executeUpdate("delete from FIELDS " + whereClause(uuid));
             return result > 0;
         } catch (SQLException e) {
@@ -99,10 +122,11 @@ public class H2FieldStorage implements FieldStorage {
                 preparedStatement.addBatch();
                 int[] updateCounts = preparedStatement.executeBatch();
             } else {
-                PreparedStatement preparedStatement = connection.prepareStatement("UPDATE FIELDS SET value=?, type=?, class=?");
+                PreparedStatement preparedStatement = connection.prepareStatement("UPDATE FIELDS SET value=?, type=?, class=?, elementClass=?");
                 preparedStatement.setString(1, representation.getValueString());
                 preparedStatement.setInt(2, representation.getTypeOrdinal());
                 preparedStatement.setString(3, representation.getClassName());
+                preparedStatement.setString(4, representation.getElementClassName());
                 preparedStatement.addBatch();
                 int[] updateCounts = preparedStatement.executeBatch();
             }
@@ -195,7 +219,7 @@ public class H2FieldStorage implements FieldStorage {
     private FieldRecord rsToSF(Locator locator, ResultSet rs) throws SQLException, ClassNotFoundException, NoSuchMethodException, InvocationTargetException, InstantiationException, IllegalAccessException, StoreException {
         Class<?> clazz = getClassFromResultSet(rs, "class");
         Class elementClass = getClassFromResultSet(rs, "elementClass");
-        Object value = valueFromString(rs.getString("value"), clazz, elementClass);
+        Object value = valueFromString(rs.getString("value"), clazz, elementClass, null); // TODO will it need uuid (passed null)?
         return new FieldRecord(locator, value, clazz, elementClass, RECORD_TYPE.values()[rs.getInt("type")]);
     }
 
@@ -206,15 +230,17 @@ public class H2FieldStorage implements FieldStorage {
 
     private FieldRecord readSerializedFieldFromResultSet(ResultSet rs) throws SQLException, ClassNotFoundException, InvocationTargetException, NoSuchMethodException, InstantiationException, IllegalAccessException, StoreException {
         Class<?> clazz = Class.forName(rs.getString("class"));
-        return new FieldRecord(UUID.fromString(rs.getString("id")), rs.getString("path"), valueFromString(rs.getString("value"), clazz, null),
+        UUID uuid = UUID.fromString(rs.getString("id"));
+        return new FieldRecord(uuid, rs.getString("path"), valueFromString(rs.getString("value"), clazz, null, uuid),
                 clazz, RECORD_TYPE.values()[rs.getInt("type")]);
     }
 
-    private Object valueFromString(String string, Class clazz, Class<Object> elementClass) throws NoSuchMethodException, InvocationTargetException, IllegalAccessException, InstantiationException, StoreException {
+    private Object valueFromString(String string, Class clazz, Class<Object> elementClass, UUID uuid) throws NoSuchMethodException, InvocationTargetException, IllegalAccessException, InstantiationException, StoreException {
         if (String.class.equals(clazz)) {
             return string;
         } if (ProxyList.class.isAssignableFrom(clazz)) {
-            List proxyList = swap.newWrapList(elementClass);
+//            List proxyList = swap.newWrapList(elementClass);
+            List proxyList = new ProxyList(swap, elementClass, uuid, Swap.DONT_UNLOAD); // TODO UUID???
             return proxyList;
         } else {
             Constructor constructor = clazz.getConstructor();

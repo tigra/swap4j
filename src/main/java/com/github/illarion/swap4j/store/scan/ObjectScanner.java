@@ -35,7 +35,7 @@ public class ObjectScanner {
     }
 
     public <E> void  scanObject(ProxyList<E> list, Class<E> elementClass) throws StoreException {
-        scanList(list, elementClass);
+        scanProxyList(list, elementClass);
     }
 
     private void scan(Object object, Field declaringField) throws IllegalAccessException, StoreException {
@@ -77,16 +77,16 @@ public class ObjectScanner {
         if (null == elementClass) {
             elementClass = Object.class; // TODO try to infer in runtime?
         }
-        scanList(list, elementClass);
+        scanProxyList(list, elementClass);
     }
 
-    private void scanList(ProxyList list, Class elementClass) throws StoreException {
-        scanList(null, list, elementClass);
+    private void scanProxyList(ProxyList list, Class elementClass) throws StoreException {
+        scanProxyList(null, list, elementClass);
     }
 
-    private void scanList(UUID uuid, ProxyList list, Class elementClass) throws StoreException {
+    void scanProxyList(UUID uuid, ProxyList list, Class elementClass) throws StoreException {
         objectContext.addRoot(uuid);
-        visitList(list, list.getClass(), elementClass);
+        visitProxyList(list, list.getClass(), elementClass);
     }
 
     private void visitCompoundObject(Object object, Class clazz) throws IllegalAccessException, StoreException {
@@ -104,12 +104,28 @@ public class ObjectScanner {
             }
             if (Proxy.class.isAssignableFrom(fieldType)) {
                 visitProxyField(field.getName(), (Proxy) fieldValue, Utils.getProxyType(field));
+            } else if (ProxyList.class.isAssignableFrom(fieldType)) {
+                visitProxyList2(field, fieldType, fieldValue);
+            } else if (List.class.isAssignableFrom(fieldType)) { // simply list
+                visitProxyList2(field, ProxyList.class, fieldValue); // TODO is substitution of ProxyList here correct?
+                // TODO Problem: we have to serialize object based on its own class, not the field class
+//                throw new UnsupportedOperationException("TODO");
             } else if (String.class.isAssignableFrom(fieldType)) { // primitive
                 visitPrimitiveField(field.getName(), fieldValue);
             } else { // compound
                 visitCompoundField(field.getName(), fieldValue, clazz);
-            }
+            } // TODO handle ProxyList
         }
+    }
+
+    private void visitProxyList2(Field field, Class<?> fieldType, Object fieldValue) throws StoreException {
+        Type genericFieldType = field.getGenericType();
+        Type elementClass = Object.class;
+        if (genericFieldType instanceof ParameterizedType) {
+            ParameterizedType parameterizedType = (ParameterizedType)genericFieldType;
+            elementClass = parameterizedType.getActualTypeArguments()[0];
+        }
+        visitProxyList((ProxyList)fieldValue, fieldType, elementClass); // TODO determine it properly
     }
 
     private void visitProxy(Class clazz, Proxy proxy) throws StoreException, IllegalAccessException {
@@ -177,13 +193,15 @@ public class ObjectScanner {
         writer.serialize(fieldRecord);
     }
 
-    private void visitList(ProxyList list, Class clazz, Class elementClass) throws StoreException {
+    private void visitProxyList(ProxyList list, Class clazz, Type elementClass) throws StoreException {
         objectContext.push(list.getId(), "[");
 //        final Class clazz = list.getClazz();
-        write(objectContext.peek(), list, clazz, RECORD_TYPE.PROXY_LIST); // TODO store elementclass in Proxy
+        write(objectContext.peek(), list, clazz, (Class)elementClass, RECORD_TYPE.PROXY_LIST);
+        // TODO Support Type properly, not cast to Class
+        // TODO store elementClass in Proxy (?)
         int i = 0;
         for (Object obj : list) {
-            visitProxyListElement(obj, i++, elementClass);
+            visitProxyListElement(obj, i++, (Class)elementClass);
         }
         objectContext.pop();
     }

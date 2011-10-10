@@ -13,7 +13,6 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 
 import java.lang.reflect.Field;
-import java.lang.reflect.Type;
 import java.util.*;
 
 import static junit.framework.Assert.assertEquals;
@@ -36,7 +35,7 @@ public class ObjectScannerTest {
     private Swap swap;
     private FieldStorage objectSerializer;
     private ObjectScanner scanner;
-    private UUIDGenerator uuidGenerator = new UUIDGenerator();
+    private UUIDGenerator uuidGenerator = new RandomUuidGenerator();
 
     @Before
     public void setUp() throws StoreException {
@@ -90,7 +89,7 @@ public class ObjectScannerTest {
     @Test
     public void testNestedProxies() throws StoreException, IllegalAccessException {
 //        final Sequence serializing = context.sequence("serializing");
-        final UUIDGenerator uuidGenerator = context.mock(UUIDGenerator.class);
+        final UUIDGenerator uuidGenerator = context.mock(RandomUuidGenerator.class);
 
         context.checking(new UUIDSequenceExpectations(context, uuidGenerator, objectSerializer) {{
             expectSequentalUUIDs(0);
@@ -115,7 +114,7 @@ public class ObjectScannerTest {
 
     @Test
     public void testList() throws IllegalAccessException, StoreException {
-        final UUIDGenerator uuidGenerator = context.mock(UUIDGenerator.class);
+        final UUIDGenerator uuidGenerator = context.mock(RandomUuidGenerator.class);
         final ProxyList<Dummy> list = new ProxyList<Dummy>(swap, Dummy.class, new UUID(0, 0)); // TODO Can't have ProxyList<Dummy>, only ProxyList<Proxy<Dummy>>
         store.setUuidGenerator(uuidGenerator);
 
@@ -154,7 +153,7 @@ public class ObjectScannerTest {
     public void testTransientFieldsAreIgnored() throws StoreException, IllegalAccessException {
         ObjectWithTransientField objectWithTransientField = new ObjectWithTransientField();
 
-        final UUIDGenerator uuidGenerator = context.mock(UUIDGenerator.class);
+        final UUIDGenerator uuidGenerator = context.mock(RandomUuidGenerator.class);
         store.setUuidGenerator(uuidGenerator);
 
         context.checking(new UUIDSequenceExpectations(context, uuidGenerator, objectSerializer) {{

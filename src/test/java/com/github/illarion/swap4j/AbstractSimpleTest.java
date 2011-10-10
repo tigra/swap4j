@@ -2,6 +2,8 @@ package com.github.illarion.swap4j;
 
 import com.github.illarion.swap4j.store.ObjectStorage;
 import com.github.illarion.swap4j.store.StoreException;
+import com.github.illarion.swap4j.store.scan.FieldStorage;
+import com.github.illarion.swap4j.swap.ProxyList;
 import com.github.illarion.swap4j.swap.Swap;
 import org.junit.Before;
 import org.junit.Test;
@@ -10,7 +12,10 @@ import java.sql.SQLException;
 import java.util.List;
 import java.util.Set;
 
+import static com.github.illarion.swap4j.CustomAssertions.*;
+import static com.github.illarion.swap4j.CustomAssertions.elementClassIs;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.fail;
 
 /**
  * TODO Describe class
@@ -20,6 +25,7 @@ import static org.junit.Assert.assertEquals;
 public abstract class AbstractSimpleTest {
     protected Swap swap;
     protected ObjectStorage objectStore;
+    protected FieldStorage fieldStorage;
 
     /**
      * Define this method in subclasses to run this set of tests on different <code>ObjectStorage</code>'s 
@@ -79,6 +85,14 @@ public abstract class AbstractSimpleTest {
         assertEquals("deepInside",
                 root.getChildren().get(0).getChildren().get(0).getValue());
         assertEquals(0, deepInside.getChildren().size());
+    }
+
+    @Test
+    public void testEmptyProxyList() throws StoreException {
+        List<Baz> list = swap.newWrapList(Baz.class);
+
+        assertStorageContains(fieldStorage,
+            at(0, ".[", clazzIs(ProxyList.class).and(elementClassIs(Baz.class)).and(recordTypeIsProxyList()))); 
     }
 
     @Test

@@ -62,12 +62,18 @@ public class ProxyList<T> implements List<T>, Locatable<T> {
         unload();
     }
 
-    public ProxyList(Swap swap, Class<T> elementClass, UUID id) throws StoreException {
+    public ProxyList(Swap swap, Class<T> elementClass, UUID uuid) throws StoreException {
+        this(swap, elementClass, uuid, true);
+    }
+
+    public ProxyList(Swap swap, Class<T> elementClass, UUID uuid, boolean doUnload) throws StoreException {
         this.elementClass = elementClass;
-        this.id = id;
+        this.id = uuid;
         this.swap = swap;
         this.objectStore = swap.getStore();
-        unload();
+        if (doUnload) {
+            unload();
+        }
     }
 
     @Override
@@ -87,7 +93,7 @@ public class ProxyList<T> implements List<T>, Locatable<T> {
 
     @Override
     public void unload() throws StoreException {
-        swap.getStore().storeList(id, this, this.elementClass);
+        swap.getStore().storeProxyList(id, this, this.elementClass);
     }
 
     @Override

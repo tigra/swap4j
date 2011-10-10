@@ -93,7 +93,7 @@ public abstract class ObjectFieldStorage implements ObjectStorage {
             synchronized (fieldStorage) {
                 fieldStorage.clean(id);
                 if (object instanceof ProxyList) {
-                    storeList(id, (ProxyList)object, Object.class); //TODO proper elementClass
+                    storeProxyList(id, (ProxyList)object, Object.class); //TODO proper elementClass
                 } else {
                     scanner.scanObject(id, object);
                 }
@@ -104,10 +104,10 @@ public abstract class ObjectFieldStorage implements ObjectStorage {
     }
 
     @Override
-    public <T> void storeList(UUID uuid, ProxyList proxyList, Class elementClass) throws StoreException {
+    public <T> void storeProxyList(UUID uuid, ProxyList proxyList, Class elementClass) throws StoreException {
         synchronized (fieldStorage) {
             fieldStorage.clean(uuid);
-            scanner.scanObject(proxyList, elementClass);
+            scanner.scanProxyList(uuid, proxyList, elementClass);
         }
     }
 }

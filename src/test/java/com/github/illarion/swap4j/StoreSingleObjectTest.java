@@ -7,7 +7,7 @@ package com.github.illarion.swap4j;
 import com.github.illarion.swap4j.store.StoreException;
 import com.github.illarion.swap4j.store.scan.MapWriter;
 import com.github.illarion.swap4j.store.scan.TestObjectScannerObjectStorage;
-import com.github.illarion.swap4j.swap.UUIDGenerator;
+import com.github.illarion.swap4j.swap.RandomUuidGenerator;
 import org.junit.rules.TemporaryFolder;
 import com.github.illarion.swap4j.store.ObjectStorage;
 import com.github.illarion.swap4j.swap.Swap;
@@ -105,7 +105,7 @@ public class StoreSingleObjectTest {
     @Before
     public void setUp() throws Exception {
 //        store = new SimpleStore(testFolder.newFolder("temp"));
-        objectStore = new TestObjectScannerObjectStorage(null, new MapWriter(), new UUIDGenerator());
+        objectStore = new TestObjectScannerObjectStorage(null, new MapWriter(), new RandomUuidGenerator());
         swap = new Swap(objectStore);
         ((TestObjectScannerObjectStorage) objectStore).setSwap(swap);
     }

@@ -33,7 +33,7 @@ public class UUIDSequenceExpectations extends Expectations {
     }
 
     public UUIDSequenceExpectations(Mockery mockery) {
-        this.uuidGenerator = mockery.mock(UUIDGenerator.class);
+        this.uuidGenerator = mockery.mock(RandomUuidGenerator.class);
         this.uuidSequence = createSequence(mockery, "uuid");
         this.serializationSequence = createSequence(mockery, "serialization");
     }

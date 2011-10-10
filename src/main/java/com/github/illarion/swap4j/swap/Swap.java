@@ -16,6 +16,7 @@ import java.util.Set;
 public class Swap {
 
     private final ObjectStorage objectStore;
+    public static final boolean DONT_UNLOAD = false;
 
     public Swap(ObjectStorage objectStore) {
         this.objectStore = objectStore;

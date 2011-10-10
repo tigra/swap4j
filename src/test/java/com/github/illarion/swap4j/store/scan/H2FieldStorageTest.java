@@ -8,7 +8,7 @@ import org.junit.Test;
 import java.sql.SQLException;
 import java.util.UUID;
 
-import static com.github.illarion.swap4j.CustomAssertions.obj;
+import static com.github.illarion.swap4j.CustomAssertions.*;
 import static junit.framework.Assert.assertEquals;
 
 /**
@@ -58,7 +58,9 @@ public class H2FieldStorageTest {
         storage.clean(new UUID(0,3));
 
         // verify
-        CustomAssertions.assertStorageContains(storage, obj(1, "./a", "b", String.class, RECORD_TYPE.PRIMITIVE_FIELD));
+//        CustomAssertions.assertStorageContains(storage, obj(1, "./a", "b", String.class, RECORD_TYPE.PRIMITIVE_FIELD));
+        CustomAssertions.assertStorageContains(storage,
+                at(1, "./a", valueIs("b").and(clazzIs(String.class)).and(recordTypeIsPrimitiveField())));
     }
 
 }
