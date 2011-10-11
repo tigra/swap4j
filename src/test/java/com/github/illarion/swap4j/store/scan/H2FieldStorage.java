@@ -122,11 +122,15 @@ public class H2FieldStorage implements FieldStorage, UUIDGenerator {
                 preparedStatement.addBatch();
                 int[] updateCounts = preparedStatement.executeBatch();
             } else {
-                PreparedStatement preparedStatement = connection.prepareStatement("UPDATE FIELDS SET value=?, type=?, class=?, elementClass=?");
+                PreparedStatement preparedStatement = connection.prepareStatement(
+                        "UPDATE FIELDS SET value=?, type=?, class=?, elementClass=? WHERE id='"
+                                + representation.getIdString() + "' and path='" + representation.getPath() + "'");
                 preparedStatement.setString(1, representation.getValueString());
                 preparedStatement.setInt(2, representation.getTypeOrdinal());
                 preparedStatement.setString(3, representation.getClassName());
                 preparedStatement.setString(4, representation.getElementClassName());
+//                preparedStatement.setString(5, representation.getIdString());
+//                preparedStatement.setString(5, representation.getPath());
                 preparedStatement.addBatch();
                 int[] updateCounts = preparedStatement.executeBatch();
             }
@@ -145,7 +149,10 @@ public class H2FieldStorage implements FieldStorage, UUIDGenerator {
             ResultSet rs = statement.executeQuery("select * from FIELDS " + whereClause(locator));
 //                    + " where id='" + locator.getId().toString() + "'"
 //                    + " and path='" + locator.getPath() + "'");
-            rs.next();
+            if (!rs.next()) {
+                return null;
+//                throw new StoreException("Not found");
+            }
             return rsToSF(locator, rs);
         } catch (SQLException e) {
             e.printStackTrace();

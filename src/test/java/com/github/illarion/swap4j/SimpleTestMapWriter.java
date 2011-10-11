@@ -24,6 +24,6 @@ public class SimpleTestMapWriter extends AbstractSimpleTest {
     @Override
     protected ObjectStorage createObjectStore() throws ClassNotFoundException, SQLException {
         fieldStorage = new MapWriter();
-        return new TestObjectScannerObjectStorage(swap, fieldStorage, new RandomUuidGenerator());
+        return new TestObjectScannerObjectStorage(swap, fieldStorage, new SequentalUUIDGenerator());
     }
 }

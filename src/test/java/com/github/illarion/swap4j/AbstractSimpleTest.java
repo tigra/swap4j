@@ -88,12 +88,24 @@ public abstract class AbstractSimpleTest {
     }
 
     @Test
-    public void testEmptyProxyList() throws StoreException {
+    public void testEmptySwapList() throws StoreException {
         List<Baz> list = swap.newWrapList(Baz.class);
 
         assertStorageContains(fieldStorage,
             at(0, ".[", clazzIs(ProxyList.class).and(elementClassIs(Baz.class)).and(recordTypeIsProxyList()))); 
     }
+
+    @Test
+    public void testEmptySwapListInsideWrapped() throws StoreException {
+        Baz baz = swap.wrap(new Baz(swap, "baz"), Baz.class);
+
+        assertStorageContains(fieldStorage,
+                at(0, ".[", clazzIs(ProxyList.class).and(elementClassIs(Baz.class)).and(recordTypeIsProxyList())),
+                at(1, ".", clazzIs(Baz.class).and(recordTypeIsProxiedValue())),
+                at(1, "./value", valueIs("baz").and(clazzIs(String.class).and(recordTypeIsPrimitiveField())))
+        );
+    }
+
 
     @Test
     public void testSimplestNestedList() throws StoreException {
