@@ -94,7 +94,7 @@ public class Locator implements Comparable<Locator>{
         return this.path.compareTo(that.path);
     }
 
-    public boolean isRoot(FieldRecord fieldRecord) {
+    public boolean isRoot() {
         return ".".equals(getPath());
     }
 

@@ -106,8 +106,9 @@ public class StoreSingleObjectTest {
     public void setUp() throws Exception {
 //        store = new SimpleStore(testFolder.newFolder("temp"));
         objectStore = new TestObjectScannerObjectStorage(null, new MapWriter(), new RandomUuidGenerator());
-        swap = new Swap(objectStore);
-        ((TestObjectScannerObjectStorage) objectStore).setSwap(swap);
+        swap = Swap.newInstance(objectStore);
+        Swap.setInstance(swap);
+        objectStore.setSwap(swap);
     }
 
     @Test

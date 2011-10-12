@@ -76,4 +76,9 @@ public class MapWriter implements FieldStorage {
     @Override
     public void setSwap(Swap swap) {
     }
+
+    @Override
+    public long getRecordCount() {
+        return serializedObjects.size();
+    }
 }

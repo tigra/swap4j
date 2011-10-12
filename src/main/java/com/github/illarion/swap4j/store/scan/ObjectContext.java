@@ -15,8 +15,12 @@ public class ObjectContext {
     }
 
     Locator push(String name) {
+        return pushWithoutSlash("/" + name);
+    }
+
+    public Locator pushWithoutSlash(String addition) {
         Locator locator = stack.peek();
-        Locator newLocator = new Locator(locator.getId(), locator.getPath() + "/" + name);
+        Locator newLocator = new Locator(locator.getId(), locator.getPath() + addition);
         stack.push(newLocator);
         return newLocator;
     }

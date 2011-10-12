@@ -9,20 +9,36 @@ package com.github.illarion.swap4j.store.scan;
  * @author Alexey Tigarev
  */
 public enum RECORD_TYPE {
+    /**
+     * Primitive field of an object.
+     * E.g. String A.a
+     */
     PRIMITIVE_FIELD,
+    /**
+     * "Standalone" primitive value.
+     * E.g. "5"
+     */
     PRIMITIVE_VALUE,
     /**
      * Field of an object that is a Proxy
      */
     PROXIED_FIELD,
+    /**
+     * "Standalone" proxied object.
+     * E.g. new Proxy<Baz>(new Baz())
+     * swap.wrap(new Baz())
+     */
     PROXIED_VALUE,
     COMPOUND_FIELD,
     COMPOUND_VALUE,
+    /**
+     * Proxy List
+     */
     PROXY_LIST,
     /**
-     * Proxy inside certain ProxyList
+     * List element: Proxy inside certain ProxyList
      */
-    LIST_VALUE,
+    LIST_ELEMENT,
     LIST_FIELD,
     PROXY_SET,
     SET_VALUE,

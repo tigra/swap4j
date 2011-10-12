@@ -48,10 +48,8 @@ public class ObjectScanner {
 
     private void scanObject(Object object, Type type) throws StoreException, IllegalAccessException {
         if (object == null) {
-//            System.out.println("Null, nothing to scan");
             return;
         }
-//        System.out.println("Scanning " + object + " of type " + object.getClass());
         Class clazz = object.getClass();
         if (ProxyList.class.isAssignableFrom(clazz)) {
             scanList((ProxyList)object, type);
@@ -98,34 +96,48 @@ public class ObjectScanner {
         for (Field field : fields) {
             final Class<?> fieldType = field.getType();
             final Object fieldValue = field.get(object);
-//            System.out.println("Field: " + field + ", type=" + fieldType + ", value=" + fieldValue);
             if (field.isSynthetic() || Modifier.isTransient(field.getModifiers())) {
                 continue;
             }
             if (Proxy.class.isAssignableFrom(fieldType)) {
                 visitProxyField(field.getName(), (Proxy) fieldValue, Utils.getProxyType(field));
             } else if (ProxyList.class.isAssignableFrom(fieldType)) {
-                visitProxyList2(field, fieldType, fieldValue);
+                visitProxyList2(field, fieldType, (ProxyList) fieldValue);
             } else if (List.class.isAssignableFrom(fieldType)) { // simply list
-                visitProxyList2(field, ProxyList.class, fieldValue); // TODO is substitution of ProxyList here correct?
-                // TODO Problem: we have to serialize object based on its own class, not the field class
-//                throw new UnsupportedOperationException("TODO");
+                visitProxyListField(object, field, fieldValue);
             } else if (String.class.isAssignableFrom(fieldType)) { // primitive
-                visitPrimitiveField(field.getName(), fieldValue);
+                visitPrimitiveField(field.getName(), fieldValue, fieldType);
             } else { // compound
                 visitCompoundField(field.getName(), fieldValue, clazz);
             } // TODO handle ProxyList
         }
     }
 
-    private void visitProxyList2(Field field, Class<?> fieldType, Object fieldValue) throws StoreException {
+    private void visitProxyListField(Object object, Field field, Object fieldValue) throws StoreException {
+        ProxyList proxyListFieldValue = (ProxyList) fieldValue;
+        objectContext.push(field.getName());
+        Class elementClass = getElementClass(field);
+        write(objectContext.peek(), proxyListFieldValue.getId().toString(), ProxyList.class, elementClass, RECORD_TYPE.LIST_FIELD);
+        // todo list reference (uuid) and elementClass
+        objectContext.pop();
+        visitProxyList2(field, ProxyList.class, proxyListFieldValue); // TODO is substitution of ProxyList here correct?
+        // TODO Problem: we have to serialize object based on its own class, not the field class
+//                throw new UnsupportedOperationException("TODO");
+    }
+
+    private void visitProxyList2(Field field, Class<?> fieldType, ProxyList proxyListFieldValue) throws StoreException {
+        Type elementClass = getElementClass(field);
+        visitProxyList(proxyListFieldValue, fieldType, elementClass); // TODO determine it properly
+    }
+
+    private Class getElementClass(Field field) {
         Type genericFieldType = field.getGenericType();
         Type elementClass = Object.class;
         if (genericFieldType instanceof ParameterizedType) {
             ParameterizedType parameterizedType = (ParameterizedType)genericFieldType;
             elementClass = parameterizedType.getActualTypeArguments()[0];
         }
-        visitProxyList((ProxyList)fieldValue, fieldType, elementClass); // TODO determine it properly
+        return (Class)elementClass;
     }
 
     private void visitProxy(Class clazz, Proxy proxy) throws StoreException, IllegalAccessException {
@@ -147,10 +159,21 @@ public class ObjectScanner {
         objectContext.pop();
     }
 
-    private void visitPrimitiveField(String name, Object value) {
+    private void visitPrimitiveField(String name, Object value, Class fieldType) {
         Locator locator = objectContext.push(name);
-        write(locator, value, value.getClass(), RECORD_TYPE.PRIMITIVE_FIELD);
+        Class clazz = determineClass(value, fieldType);
+        write(locator, value, clazz, RECORD_TYPE.PRIMITIVE_FIELD);
         objectContext.pop();
+    }
+
+    private Class determineClass(Object value, Class fieldType) {
+        Class clazz = Object.class;
+        if (null != fieldType) {
+            clazz = fieldType;
+        } else if (null != value) {
+            clazz = value.getClass();
+        }
+        return clazz;
     }
 
 
@@ -182,13 +205,13 @@ public class ObjectScanner {
     }
 
     private void write(Locator locator, Object value, Class clazz, RECORD_TYPE recordType) {
-        FieldRecord fieldRecord = new FieldRecord(locator, value, clazz, recordType);
+        FieldRecord fieldRecord = new FieldRecordBuilder(locator).setValue(value).setClazz(clazz).setRecordType(recordType).create();
 //        System.out.println(">" + fieldRecord);
         writer.serialize(fieldRecord);
     }
 
     private void write(Locator locator, Object value, Class clazz, Class elementClass, RECORD_TYPE recordType) {
-        FieldRecord fieldRecord = new FieldRecord(locator, value, clazz, elementClass, recordType);
+        FieldRecord fieldRecord = new FieldRecordBuilder(locator).setValue(value).setClazz(clazz).setElementClass(elementClass).setRecordType(recordType).create();
 //        System.out.println(">" + fieldRecord);
         writer.serialize(fieldRecord);
     }
@@ -196,7 +219,7 @@ public class ObjectScanner {
     private void visitProxyList(ProxyList list, Class clazz, Type elementClass) throws StoreException {
         objectContext.push(list.getId(), "[");
 //        final Class clazz = list.getClazz();
-        write(objectContext.peek(), list, clazz, (Class)elementClass, RECORD_TYPE.PROXY_LIST);
+        write(objectContext.peek(), list, clazz, (Class)elementClass, RECORD_TYPE.PROXY_LIST); // TPDP
         // TODO Support Type properly, not cast to Class
         // TODO store elementClass in Proxy (?)
         int i = 0;
@@ -211,10 +234,14 @@ public class ObjectScanner {
 //        if (Enhancer.isEnhanced(obj.getClass())) {
         Proxy proxy = ProxyUtils.getProxy(obj);
         if (proxy != null) {
-            objectContext.push(proxy.getId(), String.valueOf(pos));
-            proxy.load();
-            write(objectContext.peek(), proxy.getRealObject(), clazz, RECORD_TYPE.LIST_VALUE);
+            objectContext.pushWithoutSlash(String.valueOf(pos));
+            write(objectContext.peek(), proxy.getId().toString(), clazz, clazz, RECORD_TYPE.LIST_ELEMENT);
             objectContext.pop();
+
+//            objectContext.push(proxy.getId(), String.valueOf(pos));
+//            proxy.load();
+//            write(objectContext.peek(), proxy.getRealObject(), clazz, RECORD_TYPE.LIST_ELEMENT);
+//            objectContext.pop();
         } else {
             throw new NullPointerException("null proxy");
         }

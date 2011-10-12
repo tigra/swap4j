@@ -32,11 +32,11 @@ public class MapWriterTest {
     @Test
     public void testClean() throws StoreException {
         // setup
-        fieldStorage.serialize(new FieldRecord(1, ".", "object1", String.class, RECORD_TYPE.PROXIED_VALUE));
-        fieldStorage.serialize(new FieldRecord(1, "./field", "string1", String.class, RECORD_TYPE.PROXIED_FIELD));
+        fieldStorage.serialize(new FieldRecordBuilder(1, ".").setValue("object1").setClazz(String.class).setRecordType(RECORD_TYPE.PROXIED_VALUE).create());
+        fieldStorage.serialize(new FieldRecordBuilder(1, "./field").setValue("string1").setClazz(String.class).setRecordType(RECORD_TYPE.PROXIED_FIELD).create());
 
-        fieldStorage.serialize(new FieldRecord(2, ".", "object2", String.class, RECORD_TYPE.PROXIED_VALUE));
-        fieldStorage.serialize(new FieldRecord(2, "./field", "string2", String.class, RECORD_TYPE.PROXIED_FIELD));
+        fieldStorage.serialize(new FieldRecordBuilder(2, ".").setValue("object2").setClazz(String.class).setRecordType(RECORD_TYPE.PROXIED_VALUE).create());
+        fieldStorage.serialize(new FieldRecordBuilder(2, "./field").setValue("string2").setClazz(String.class).setRecordType(RECORD_TYPE.PROXIED_FIELD).create());
 
         // excersize
         assertTrue(fieldStorage.clean(new UUID(0, 1)));
@@ -50,8 +50,8 @@ public class MapWriterTest {
     @Test
     public void testCleanNothing() throws StoreException {
         // setup
-        fieldStorage.serialize(new FieldRecord(2, ".", "singleObject", String.class, RECORD_TYPE.PROXIED_VALUE));
-        fieldStorage.serialize(new FieldRecord(2, "./field", "stringInSingleObject", String.class, RECORD_TYPE.PROXIED_FIELD));
+        fieldStorage.serialize(new FieldRecordBuilder(2, ".").setValue("singleObject").setClazz(String.class).setRecordType(RECORD_TYPE.PROXIED_VALUE).create());
+        fieldStorage.serialize(new FieldRecordBuilder(2, "./field").setValue("stringInSingleObject").setClazz(String.class).setRecordType(RECORD_TYPE.PROXIED_FIELD).create());
 
         // excersize
         assertFalse(fieldStorage.clean(new UUID(0, 1))); // nothing removed
@@ -66,21 +66,21 @@ public class MapWriterTest {
     public void testReadAll() {
         // setup
         // field order is mangled intentionally
-        fieldStorage.serialize(new FieldRecord(1, "./field/subfield", "string11", String.class, RECORD_TYPE.PROXIED_FIELD));
-        fieldStorage.serialize(new FieldRecord(1, "./field", "string1", String.class, RECORD_TYPE.PROXIED_FIELD));
-        fieldStorage.serialize(new FieldRecord(1, ".", "object1", String.class, RECORD_TYPE.PROXIED_VALUE));
+        fieldStorage.serialize(new FieldRecordBuilder(1, "./field/subfield").setValue("string11").setClazz(String.class).setRecordType(RECORD_TYPE.PROXIED_FIELD).create());
+        fieldStorage.serialize(new FieldRecordBuilder(1, "./field").setValue("string1").setClazz(String.class).setRecordType(RECORD_TYPE.PROXIED_FIELD).create());
+        fieldStorage.serialize(new FieldRecordBuilder(1, ".").setValue("object1").setClazz(String.class).setRecordType(RECORD_TYPE.PROXIED_VALUE).create());
 
-        fieldStorage.serialize(new FieldRecord(2, ".", "object2", String.class, RECORD_TYPE.PROXIED_VALUE));
-        fieldStorage.serialize(new FieldRecord(2, "./field", "string2", String.class, RECORD_TYPE.PROXIED_FIELD));
+        fieldStorage.serialize(new FieldRecordBuilder(2, ".").setValue("object2").setClazz(String.class).setRecordType(RECORD_TYPE.PROXIED_VALUE).create());
+        fieldStorage.serialize(new FieldRecordBuilder(2, "./field").setValue("string2").setClazz(String.class).setRecordType(RECORD_TYPE.PROXIED_FIELD).create());
 
         // excersize
         List<FieldRecord> fieldsRead = fieldStorage.readAll(new UUID(0, 1));
 
         // verify
         assertEquals(3, fieldsRead.size());
-        assertEquals(new FieldRecord(1, ".", "object1", String.class, RECORD_TYPE.PROXIED_VALUE), fieldsRead.get(0));
-        assertEquals(new FieldRecord(1, "./field", "string1", String.class, RECORD_TYPE.PROXIED_FIELD), fieldsRead.get(1));
-        assertEquals(new FieldRecord(1, "./field/subfield", "string11", String.class, RECORD_TYPE.PROXIED_FIELD), fieldsRead.get(2));
+        assertEquals(new FieldRecordBuilder(1, ".").setValue("object1").setClazz(String.class).setRecordType(RECORD_TYPE.PROXIED_VALUE).create(), fieldsRead.get(0));
+        assertEquals(new FieldRecordBuilder(1, "./field").setValue("string1").setClazz(String.class).setRecordType(RECORD_TYPE.PROXIED_FIELD).create(), fieldsRead.get(1));
+        assertEquals(new FieldRecordBuilder(1, "./field/subfield").setValue("string11").setClazz(String.class).setRecordType(RECORD_TYPE.PROXIED_FIELD).create(), fieldsRead.get(2));
     }
 
 

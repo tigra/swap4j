@@ -30,29 +30,29 @@ public class H2FieldStorageTest {
     @Test
     public void testSerialize() throws ClassNotFoundException, SQLException {
         FieldStorage storage = new H2FieldStorage();
-        storage.serialize(new FieldRecord(3, "./field", "hello", String.class, RECORD_TYPE.PRIMITIVE_FIELD));
+        storage.serialize(new FieldRecordBuilder(3, "./field").setValue("hello").setClazz(String.class).setRecordType(RECORD_TYPE.PRIMITIVE_FIELD).create());
 
         FieldRecord retrieved = storage.read(new Locator(3, "./field"));
-        assertEquals(new FieldRecord(3, "./field", "hello", String.class, RECORD_TYPE.PRIMITIVE_FIELD), retrieved);
+        assertEquals(new FieldRecordBuilder(3, "./field").setValue("hello").setClazz(String.class).setRecordType(RECORD_TYPE.PRIMITIVE_FIELD).create(), retrieved);
     }
 
     @Test
     public void testSerializeOverwrite() throws ClassNotFoundException, SQLException {
         FieldStorage storage = new H2FieldStorage();
-        storage.serialize(new FieldRecord(3, "./field", "hello", String.class, RECORD_TYPE.PRIMITIVE_FIELD));
-        storage.serialize(new FieldRecord(3, "./field", "there", String.class, RECORD_TYPE.PRIMITIVE_FIELD));
+        storage.serialize(new FieldRecordBuilder(3, "./field").setValue("hello").setClazz(String.class).setRecordType(RECORD_TYPE.PRIMITIVE_FIELD).create());
+        storage.serialize(new FieldRecordBuilder(3, "./field").setValue("there").setClazz(String.class).setRecordType(RECORD_TYPE.PRIMITIVE_FIELD).create());
 
         FieldRecord retrieved = storage.read(new Locator(3, "./field"));
-        assertEquals(new FieldRecord(3, "./field", "there", String.class, RECORD_TYPE.PRIMITIVE_FIELD), retrieved);
+        assertEquals(new FieldRecordBuilder(3, "./field").setValue("there").setClazz(String.class).setRecordType(RECORD_TYPE.PRIMITIVE_FIELD).create(), retrieved);
     }
 
     @Test
     public void testClean() throws ClassNotFoundException, SQLException, StoreException {
         // setup
         FieldStorage storage = new H2FieldStorage();
-        storage.serialize(new FieldRecord(3, "./field1", "hello", String.class, RECORD_TYPE.PRIMITIVE_FIELD));
-        storage.serialize(new FieldRecord(3, "./field2", "there", String.class, RECORD_TYPE.PRIMITIVE_FIELD));
-        storage.serialize(new FieldRecord(1, "./a", "b", String.class, RECORD_TYPE.PRIMITIVE_FIELD));
+        storage.serialize(new FieldRecordBuilder(3, "./field1").setValue("hello").setClazz(String.class).setRecordType(RECORD_TYPE.PRIMITIVE_FIELD).create());
+        storage.serialize(new FieldRecordBuilder(3, "./field2").setValue("there").setClazz(String.class).setRecordType(RECORD_TYPE.PRIMITIVE_FIELD).create());
+        storage.serialize(new FieldRecordBuilder(1, "./a").setValue("b").setClazz(String.class).setRecordType(RECORD_TYPE.PRIMITIVE_FIELD).create());
 
         // excersize
         storage.clean(new UUID(0,3));

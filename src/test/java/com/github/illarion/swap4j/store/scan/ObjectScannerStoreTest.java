@@ -38,7 +38,8 @@ public class ObjectScannerStoreTest {
     public void setUp() {
         uuidGenerator = context.mock(RandomUuidGenerator.class);
         store = new TestObjectScannerObjectStorage(null, new MapWriter(), uuidGenerator);
-        swap = new Swap(store);
+        swap = Swap.newInstance(store);
+        Swap.setInstance(swap);
         store.setSwap(swap);
     }
 

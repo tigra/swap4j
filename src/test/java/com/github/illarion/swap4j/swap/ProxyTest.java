@@ -25,7 +25,8 @@ public class ProxyTest {
     @Before
     public void setUp() throws Exception {
         storage = new TestObjectScannerObjectStorage(null, new MapWriter(), new RandomUuidGenerator());
-        swap = new Swap(storage);
+        swap = Swap.newInstance(storage);
+        Swap.setInstance(swap);
         storage.setSwap(swap);
     }
 

@@ -3,14 +3,18 @@ package com.github.illarion.swap4j;
 import com.github.illarion.swap4j.store.ObjectStorage;
 import com.github.illarion.swap4j.store.StoreException;
 import com.github.illarion.swap4j.store.scan.FieldStorage;
+import com.github.illarion.swap4j.swap.Proxy;
 import com.github.illarion.swap4j.swap.ProxyList;
 import com.github.illarion.swap4j.swap.Swap;
+import org.junit.After;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import java.sql.SQLException;
 import java.util.List;
 import java.util.Set;
+import java.util.UUID;
 
 import static com.github.illarion.swap4j.CustomAssertions.*;
 import static com.github.illarion.swap4j.CustomAssertions.elementClassIs;
@@ -38,13 +42,21 @@ public abstract class AbstractSimpleTest {
     @Before
     public void setUp() throws ClassNotFoundException, SQLException {
         objectStore = createObjectStore();
-        swap = new Swap(objectStore);
+        swap = Swap.newInstance(objectStore);
+        Swap.setInstance(swap);
         objectStore.setSwap(swap);
+    }
+
+    @After
+    public void tearDown() throws InterruptedException {
+        Swap.shutdown();
+        System.gc();
+        Thread.sleep(100);
     }
 
     @Test
     public void testSwapSingleValue() throws StoreException {
-        Swap swap = new Swap(objectStore);
+//        Swap swap = new Swap(objectStore);
 
         Bar bar = swap.wrap(new Bar("new"), Bar.class);
 
@@ -56,7 +68,7 @@ public abstract class AbstractSimpleTest {
 
     @Test
     public void testSwapList() throws StoreException {
-        Swap swap = new Swap(objectStore);
+//        Swap swap = new Swap(objectStore);
 
         List<Bar> list = swap.newWrapList(Bar.class);
 
@@ -73,7 +85,7 @@ public abstract class AbstractSimpleTest {
         Baz root = swap.wrap(new Baz(swap, "root"), Baz.class);
         Baz inside = swap.wrap(new Baz(swap, "inside"), Baz.class);
         Baz deepInside = swap.wrap(new Baz(swap, "deepInside"), Baz.class);
-        root.add(inside);
+        root.add(inside); // TODO call getter of swapped, add to ProxyList - test
         inside.add(deepInside);
 
         assertEquals(1, root.getChildren().size());
@@ -101,9 +113,112 @@ public abstract class AbstractSimpleTest {
 
         assertStorageContains(fieldStorage,
                 at(0, ".[", clazzIs(ProxyList.class).and(elementClassIs(Baz.class)).and(recordTypeIsProxyList())),
+                
                 at(1, ".", clazzIs(Baz.class).and(recordTypeIsProxiedValue())),
-                at(1, "./value", valueIs("baz").and(clazzIs(String.class).and(recordTypeIsPrimitiveField())))
+                at(1, "./value", valueIs("baz").and(clazzIs(String.class).and(recordTypeIsPrimitiveField()))),
+                at(1, "./children", valueIsUuidStr(0).and(clazzIs(ProxyList.class).and(elementClassIs(Baz.class).and(recordTypeIsListField()))))
         );
+    }
+
+
+    @Test
+    public void testSwapListInsideProxyAddRegular() throws StoreException {
+        Baz root = new Baz(swap, "root");
+        Proxy<Baz> bazProxy = new Proxy<Baz>(objectStore, root, Baz.class);
+
+        assertStorageContains(fieldStorage,
+                at(0, ".[", clazzIs(ProxyList.class).and(elementClassIs(Baz.class).and(recordTypeIsProxyList()))),
+
+                at(1, ".", clazzIs(Baz.class).and(recordTypeIsProxiedValue())),
+                at(1, "./value", valueIs("root").and(clazzIs(String.class).and(recordTypeIsPrimitiveField()))),
+                at(1, "./children", valueIsUuidStr(0).and(clazzIs(ProxyList.class).and(elementClassIs(Baz.class).and(recordTypeIsListField()))))
+        );
+
+        Baz inside = new Baz(swap, "inside");
+        root.add(inside);
+
+        assertStorageContains(fieldStorage,
+                at(0, ".[", clazzIs(ProxyList.class).and(elementClassIs(Baz.class).and(recordTypeIsProxyList()))),
+
+                at(1, ".", clazzIs(Baz.class).and(recordTypeIsProxiedValue())),
+                at(1, "./value", valueIs("root").and(clazzIs(String.class).and(recordTypeIsPrimitiveField()))),
+                at(1, "./children", valueIsUuidStr(0).and(clazzIs(ProxyList.class).and(elementClassIs(Baz.class).and(recordTypeIsListField())))),
+
+                at(2, ".[", clazzIs(ProxyList.class).and(elementClassIs(Baz.class).and(recordTypeIsProxyList()))),
+                at(3, ".", clazzIs(Baz.class).and(recordTypeIsProxiedValue())),
+                at(3, "./value", valueIs("inside").and(clazzIs(String.class).and(recordTypeIsPrimitiveField()))),
+                at(3, "./children", valueIs(new UUID(0, 2).toString()).and(clazzIs(ProxyList.class).and(elementClassIs(Baz.class).and(recordTypeIsListField()))))
+        ); // TODO Check what is part of what list?
+    }
+
+    @Test
+    public void testSwapListInsideProxyAddWrapped() throws StoreException {
+        Baz root = new Baz(swap, "root");
+        Proxy<Baz> bazProxy = new Proxy<Baz>(objectStore, root, Baz.class);
+
+        assertStorageContains(fieldStorage,
+                at(0, ".[", clazzIs(ProxyList.class).and(elementClassIs(Baz.class).and(recordTypeIsProxyList()))),
+
+                at(1, ".", clazzIs(Baz.class).and(recordTypeIsProxiedValue())),
+                at(1, "./value", valueIs("root").and(clazzIs(String.class).and(recordTypeIsPrimitiveField()))),
+                at(1, "./children", valueIsUuidStr(0).and(clazzIs(ProxyList.class).and(elementClassIs(Baz.class).and(recordTypeIsListField()))))
+        );
+
+        Baz inside = swap.wrap(new Baz(swap, "inside"), Baz.class);
+        root.add(inside);
+
+        assertStorageContains(fieldStorage,
+                at(0, ".[", clazzIs(ProxyList.class).and(elementClassIs(Baz.class).and(recordTypeIsProxyList()))),
+
+                at(1, ".", clazzIs(Baz.class).and(recordTypeIsProxiedValue())),
+                at(1, "./value", valueIs("root").and(clazzIs(String.class).and(recordTypeIsPrimitiveField()))),
+                at(1, "./children", valueIsUuidStr(0).and(clazzIs(ProxyList.class).and(elementClassIs(Baz.class).and(recordTypeIsListField())))),
+
+                at(2, ".[", clazzIs(ProxyList.class).and(elementClassIs(Baz.class).and(recordTypeIsProxyList()))),
+
+                at(3, ".", clazzIs(Baz.class).and(recordTypeIsProxiedValue())),
+                at(3, "./value", valueIs("inside").and(clazzIs(String.class).and(recordTypeIsPrimitiveField()))),
+                at(3, "./children", valueIs(new UUID(0,2).toString()).and(clazzIs(ProxyList.class).and(elementClassIs(Baz.class).and(recordTypeIsListField()))))
+        ); // TODO Check what is part of what list?
+    }
+
+
+    @Test
+    public void testSwapListInsideWrappedAddWrapped() throws StoreException {
+        Baz root = swap.wrap(new Baz(swap, "root"), Baz.class);
+
+        assertStorageContains(fieldStorage,
+                at(0, ".[", clazzIs(ProxyList.class).and(elementClassIs(Baz.class).and(recordTypeIsProxyList()))),
+
+                at(1, ".", clazzIs(Baz.class).and(recordTypeIsProxiedValue())),
+                at(1, "./value", valueIs("root").and(clazzIs(String.class).and(recordTypeIsPrimitiveField()))),
+                at(1, "./children", valueIsUuidStr(0).and(clazzIs(ProxyList.class)).and(elementClassIs(Baz.class)).and(recordTypeIsListField()))
+        );
+
+        Baz inside = new Baz(swap, "inside");
+        root.add(inside);
+
+        assertStorageContains(fieldStorage,
+                at(0, ".[", clazzIs(ProxyList.class).and(elementClassIs(Baz.class).and(recordTypeIsProxyList()))),
+                // empty list inside root (?)
+
+                at(1, ".", clazzIs(Baz.class).and(recordTypeIsProxiedValue())),
+                at(1, "./value", valueIs("root").and(clazzIs(String.class).and(recordTypeIsPrimitiveField()))),
+                at(1, "./children", valueIsUuidStr(0).and(clazzIs(ProxyList.class).and(elementClassIs(Baz.class)).and(recordTypeIsListField()))),
+                // root
+
+                at(2, ".[", clazzIs(ProxyList.class).and(elementClassIs(Baz.class).and(recordTypeIsProxyList()))),
+                // list containing
+
+                at(3, ".", clazzIs(Baz.class).and(recordTypeIsProxiedValue())),
+                at(3, "./value", valueIs("inside").and(clazzIs(String.class).and(recordTypeIsPrimitiveField()))),
+                at(3, "./children", clazzIs(ProxyList.class).and(elementClassIs(Baz.class).and(recordTypeIsListField()))),
+                // => 2
+
+//                at(3, ".[0", valueIs("?").and(clazzIs(Baz.class).and(recordTypeIsListValue())))
+                at(0, ".[0", valueIsUuidStr(3).and(clazzIs(Baz.class)).and(recordTypeIsListElement()))
+                // 0 .[0 => 3
+        ); // TODO Check what is part of what list?
     }
 
 
@@ -137,8 +252,19 @@ public abstract class AbstractSimpleTest {
     }
 
     @Test
+    public void testPrimitiveNull() throws StoreException {
+        // TODO This test fails if testBigSwapList() and testSwapSet() are run before it. Why?
+        Bar bar = Swap.doWrap(new Bar(null), Bar.class);
+
+        assertStorageContains(fieldStorage,
+                at(0, ".", clazzIs(Bar.class).and(recordTypeIsProxiedValue())),
+                at(0, "./value", valueIs(null).and(clazzIs(String.class).and(recordTypeIsPrimitiveField())))
+        );
+    }
+
+    @Test
     public void testBigSwapList() throws StoreException {
-        Swap swap = new Swap(objectStore);
+//        Swap swap = new Swap(objectStore);
         List<Bar> list = swap.newWrapList(Bar.class);
 
         for (int i = 0; i < 10000; i++) {
@@ -156,7 +282,7 @@ public abstract class AbstractSimpleTest {
 
     @Test
     public void testSwapSet() {
-        Swap swap = new Swap(objectStore);
+//        Swap swap = new Swap(objectStore);
 
         Set<Bar> set = swap.newWrapSet(Bar.class);
 

@@ -1,11 +1,8 @@
 package com.github.illarion.swap4j.store.scan;
 
-import com.github.illarion.swap4j.AnyObject;
-import com.github.illarion.swap4j.swap.Utils;
+import com.github.illarion.swap4j.store.StoreException;
+import com.github.illarion.swap4j.swap.Swap;
 
-import javax.xml.stream.events.EntityDeclaration;
-import java.lang.reflect.Field;
-import java.util.List;
 import java.util.UUID;
 
 /**
@@ -22,6 +19,7 @@ public class FieldRecord<T> implements Comparable<FieldRecord<T>> {
     private Class clazz;
     Locator locator;
     private Class elementClass = null; // for collections
+    transient Swap swap;
 
 
     public FieldRecord() {
@@ -82,10 +80,11 @@ public class FieldRecord<T> implements Comparable<FieldRecord<T>> {
     @Override
     public String toString() {
         final StringBuilder sb = new StringBuilder();
-        sb.append("SF{");
+        sb.append("FR{");
         sb.append("@").append(locator);
         sb.append(" =").append(value);
         sb.append(" c=").append(shortName(clazz));
+        sb.append(" e=").append(shortName(elementClass));
         sb.append(" t=").append(recordType);
         sb.append('}');
         return sb.toString();
@@ -154,28 +153,16 @@ public class FieldRecord<T> implements Comparable<FieldRecord<T>> {
      * @throws NoSuchFieldException
      * @throws IllegalAccessException
      */
-    public void writeTo(Object object) throws NoSuchFieldException, IllegalAccessException {
-        if (getLocator().isRoot(this)) {
+    public void writeTo(Object object) throws NoSuchFieldException, IllegalAccessException, StoreException {
+        if (locator.isRoot()) {
             return; // can't set object itself, ignoring
         }
-        List<String> pathComponents = locator.getParsedPath();
-        writeTo(object, pathComponents, getValue());
+        ObjectStructure structure = getObjectStructure(object);
+        structure.writeTo(object, this);
     }
 
-    public void writeTo(Object object, List<String> pathComponents, Object value) throws NoSuchFieldException, IllegalAccessException {
-        if (pathComponents.size() < 1) {
-            throw new IllegalArgumentException("Hm.....");
-        }
-        String fieldName = pathComponents.get(0);
-        Class<?> clazz = object.getClass();
-
-        Field field = Utils.getAccessibleField(fieldName, clazz);
-        if (pathComponents.size() == 1) {
-            field.set(object, value);
-        } else {
-            pathComponents.remove(0);
-            writeTo(field.get(object), pathComponents, value);
-        }
+    private ObjectStructure getObjectStructure(Object object) {
+        return new ObjectStructure(object);
     }
 
     public RECORD_TYPE getRecordType() {
@@ -191,7 +178,7 @@ public class FieldRecord<T> implements Comparable<FieldRecord<T>> {
     }
 
     String getValueString() {
-        return getValue().toString();
+        return null == value ? null : value.toString();
     }
 
     int getTypeOrdinal() {

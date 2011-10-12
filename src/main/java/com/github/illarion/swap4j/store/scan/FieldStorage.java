@@ -47,4 +47,6 @@ public interface FieldStorage extends Iterable<Locator> {
 
     @Deprecated
     void setSwap(Swap swap);
+
+    long getRecordCount();
 }

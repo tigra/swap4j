@@ -21,13 +21,13 @@ import java.util.UUID;
 public class H2FieldStorage implements FieldStorage, UUIDGenerator {
     private static final String CREATE_TABLE_FIELDS
             = "CREATE TABLE IF NOT EXISTS Fields "
-                + "(id VARCHAR(80), "
-                + "path VARCHAR(100), "
-                + "value VARCHAR(200), "
-                + "type TINYINT, "
-                + "class VARCHAR(100), "
-                + "elementClass VARCHAR(100),"
-                + " PRIMARY KEY(id, path));";
+            + "(id VARCHAR(80), "
+            + "path VARCHAR(100), "
+            + "value VARCHAR(1000), "
+            + "type TINYINT, "
+            + "class VARCHAR(100), "
+            + "elementClass VARCHAR(100),"
+            + " PRIMARY KEY(id, path));";
 
     private Connection connection;
     private Swap swap;
@@ -45,6 +45,26 @@ public class H2FieldStorage implements FieldStorage, UUIDGenerator {
     }
 
     @Override
+    public long getRecordCount() {
+        try {
+            Statement statement = createStatement();
+            ResultSet rs = statement.executeQuery("select count(*) as cnt from fields ");
+            rs.next();
+            return rs.getInt(1);
+        } catch (SQLException e) {
+            e.printStackTrace();
+            return -1;
+        }
+    }
+
+    private Statement createStatement() throws SQLException {
+        synchronized (connection) {
+            checkIfConnectionAlive();
+            return connection.createStatement();
+        }
+    }
+
+    @Override
     public UUID createUUID() {
         try {
             while (uuidPresent(currentUuid)) {
@@ -58,7 +78,7 @@ public class H2FieldStorage implements FieldStorage, UUIDGenerator {
     }
 
     private boolean uuidPresent(int currentUuid) throws SQLException {
-        Statement statement = connection.createStatement();
+        Statement statement = createStatement();
         String uuidStr = new UUID(0, currentUuid).toString();
         ResultSet rs = statement.executeQuery("select id from FIELDS where id='" + uuidStr + "'");
         return rs.next();
@@ -71,7 +91,7 @@ public class H2FieldStorage implements FieldStorage, UUIDGenerator {
     }
 
     private void initDatabase() throws SQLException {
-        Statement statement = connection.createStatement();
+        Statement statement = createStatement();
         statement.executeUpdate(CREATE_TABLE_FIELDS);
     }
 
@@ -84,7 +104,7 @@ public class H2FieldStorage implements FieldStorage, UUIDGenerator {
     @Override
     public boolean clean(UUID uuid) {
         try {
-            Statement statement = connection.createStatement();   // TODO log count of existing fields
+            Statement statement = createStatement();   // TODO log count of existing fields
             int result = statement.executeUpdate("delete from FIELDS " + whereClause(uuid));
             return result > 0;
         } catch (SQLException e) {
@@ -104,48 +124,72 @@ public class H2FieldStorage implements FieldStorage, UUIDGenerator {
 
     @Override
     public void serialize(FieldRecord representation) {
-        try {
-            Statement statement = connection.createStatement();
-            Locator locator = representation.getLocator();
-            ResultSet rs = statement.executeQuery("select count(*) as cnt from fields "
-                    + whereClause(locator));
-            rs.next();
-            if (rs.getInt(1) == 0) {
-                PreparedStatement preparedStatement = connection.prepareStatement(
-                        "INSERT INTO FIELDS VALUES (?, ?, ?, ?, ?, ?)");
-                preparedStatement.setString(1, representation.getIdString());
-                preparedStatement.setString(2, representation.getPath());
-                preparedStatement.setString(3, representation.getValueString());
-                preparedStatement.setInt(4, representation.getTypeOrdinal());
-                preparedStatement.setString(5, representation.getClassName());
-                preparedStatement.setString(6, representation.getElementClassName());
-                preparedStatement.addBatch();
-                int[] updateCounts = preparedStatement.executeBatch();
-            } else {
-                PreparedStatement preparedStatement = connection.prepareStatement(
-                        "UPDATE FIELDS SET value=?, type=?, class=?, elementClass=? WHERE id='"
-                                + representation.getIdString() + "' and path='" + representation.getPath() + "'");
-                preparedStatement.setString(1, representation.getValueString());
-                preparedStatement.setInt(2, representation.getTypeOrdinal());
-                preparedStatement.setString(3, representation.getClassName());
-                preparedStatement.setString(4, representation.getElementClassName());
+        synchronized (connection) {
+            checkIfConnectionAlive();
+            try {
+                Statement statement = createStatement();
+                Locator locator = representation.getLocator();
+                ResultSet rs = statement.executeQuery("select count(*) as cnt from fields "
+                        + whereClause(locator));
+                rs.next();
+                if (rs.getInt(1) == 0) {
+                    PreparedStatement preparedStatement = prepareStatement("INSERT INTO FIELDS VALUES (?, ?, ?, ?, ?, ?)");
+                    preparedStatement.setString(1, representation.getIdString());
+                    preparedStatement.setString(2, representation.getPath());
+                    preparedStatement.setString(3, representation.getValueString());
+                    preparedStatement.setInt(4, representation.getTypeOrdinal());
+                    preparedStatement.setString(5, representation.getClassName());
+                    preparedStatement.setString(6, representation.getElementClassName());
+                    preparedStatement.addBatch();
+                    int[] updateCounts = preparedStatement.executeBatch();
+                } else {
+                    PreparedStatement preparedStatement = prepareStatement(
+                            "UPDATE FIELDS SET value=?, type=?, class=?, elementClass=? WHERE id='"
+                                    + representation.getIdString() + "' and path='" + representation.getPath() + "'");
+                    preparedStatement.setString(1, representation.getValueString());
+                    preparedStatement.setInt(2, representation.getTypeOrdinal());
+                    preparedStatement.setString(3, representation.getClassName());
+                    preparedStatement.setString(4, representation.getElementClassName());
 //                preparedStatement.setString(5, representation.getIdString());
 //                preparedStatement.setString(5, representation.getPath());
-                preparedStatement.addBatch();
-                int[] updateCounts = preparedStatement.executeBatch();
+                    preparedStatement.addBatch();
+                    int[] updateCounts = preparedStatement.executeBatch();
+                }
+                commit();
+            } catch (SQLException e) {
+//            log.error("", e);
+                e.printStackTrace();
             }
+        }
+    }
+
+    private void commit() throws SQLException {
+        synchronized (connection) {
+            checkIfConnectionAlive();
             connection.commit();
             connection.setAutoCommit(true);
-        } catch (SQLException e) {
-//            log.error("", e);
-            e.printStackTrace();
+        }
+    }
+
+    private PreparedStatement prepareStatement(String query) throws SQLException {
+        synchronized (connection) {
+            checkIfConnectionAlive();
+            return connection.prepareStatement(query);
+        }
+    }
+
+    private void checkIfConnectionAlive() {
+        synchronized (connection) {
+            if (null == connection) {
+                throw new IllegalStateException("Can't store anything, connection to database lost");
+            }
         }
     }
 
     @Override
     public FieldRecord read(Locator locator) {
         try {
-            Statement statement = connection.createStatement();
+            Statement statement = createStatement();
             ResultSet rs = statement.executeQuery("select * from FIELDS " + whereClause(locator));
 //                    + " where id='" + locator.getId().toString() + "'"
 //                    + " and path='" + locator.getPath() + "'");
@@ -153,7 +197,8 @@ public class H2FieldStorage implements FieldStorage, UUIDGenerator {
                 return null;
 //                throw new StoreException("Not found");
             }
-            return rsToSF(locator, rs);
+            return readSerializedFieldFromResultSet(rs);
+//            return rsToSF(locator, rs);
         } catch (SQLException e) {
             e.printStackTrace();
             return null; // TODO own exception
@@ -190,8 +235,8 @@ public class H2FieldStorage implements FieldStorage, UUIDGenerator {
     public List<FieldRecord> readAll(UUID uuid) {
         try {
             List<FieldRecord> fieldRecords = new ArrayList<FieldRecord>();
-            Statement statement = connection.createStatement();
-            ResultSet rs = statement.executeQuery("select id,path,value,class,type from FIELDS " + whereClause(uuid));
+            Statement statement = createStatement();
+            ResultSet rs = statement.executeQuery("select id,path,value,class,elementClass,type from FIELDS " + whereClause(uuid));
             while (!rs.isAfterLast()) {
                 rs.next();
                 if (!rs.isAfterLast()) {
@@ -223,42 +268,55 @@ public class H2FieldStorage implements FieldStorage, UUIDGenerator {
         }
     }
 
-    private FieldRecord rsToSF(Locator locator, ResultSet rs) throws SQLException, ClassNotFoundException, NoSuchMethodException, InvocationTargetException, InstantiationException, IllegalAccessException, StoreException {
-        Class<?> clazz = getClassFromResultSet(rs, "class");
-        Class elementClass = getClassFromResultSet(rs, "elementClass");
-        Object value = valueFromString(rs.getString("value"), clazz, elementClass, null); // TODO will it need uuid (passed null)?
-        return new FieldRecord(locator, value, clazz, elementClass, RECORD_TYPE.values()[rs.getInt("type")]);
-    }
-
     private Class<?> getClassFromResultSet(ResultSet rs, String fieldName) throws ClassNotFoundException, SQLException {
         String className = rs.getString(fieldName);
         return null == className ? null : Class.forName(className);
     }
 
+//    private FieldRecord rsToSF(Locator locator, ResultSet rs) throws SQLException, ClassNotFoundException, NoSuchMethodException, InvocationTargetException, InstantiationException, IllegalAccessException, StoreException {
+//        Class<?> clazz = getClassFromResultSet(rs, "class");
+//        Class elementClass = getClassFromResultSet(rs, "elementClass");
+//        Object value = valueFromString(rs.getString("value"), clazz, elementClass, null, recordType); // TODO will it need uuid (passed null)?
+//        return new FieldRecordBuilder(locator).setValue(value).setClazz(clazz).setElementClass(elementClass).setRecordType(RECORD_TYPE.values()[rs.getInt("type")]).create();
+//    }
+
     private FieldRecord readSerializedFieldFromResultSet(ResultSet rs) throws SQLException, ClassNotFoundException, InvocationTargetException, NoSuchMethodException, InstantiationException, IllegalAccessException, StoreException {
-        Class<?> clazz = Class.forName(rs.getString("class"));
         UUID uuid = UUID.fromString(rs.getString("id"));
-        return new FieldRecord(uuid, rs.getString("path"), valueFromString(rs.getString("value"), clazz, null, uuid),
-                clazz, RECORD_TYPE.values()[rs.getInt("type")]);
+        FieldRecordBuilder builder = new FieldRecordBuilder(uuid, rs.getString("path"));
+        Class<?> clazz = getClassFromResultSet(rs, "class");
+        RECORD_TYPE recordType = RECORD_TYPE.values()[rs.getInt("type")];
+        Object value = valueFromString(rs.getString("value"), clazz, null, uuid, recordType);
+
+        builder.setValue(value);
+        builder.setClazz(clazz);
+        builder.setElementClass(getClassFromResultSet(rs, "elementClass"));
+        builder.setRecordType(recordType);
+        return builder.create();
     }
 
-    private Object valueFromString(String string, Class clazz, Class<Object> elementClass, UUID uuid) throws NoSuchMethodException, InvocationTargetException, IllegalAccessException, InstantiationException, StoreException {
+    private Object valueFromString(String string, Class clazz, Class<Object> elementClass, UUID uuid, RECORD_TYPE recordType) throws NoSuchMethodException, InvocationTargetException, IllegalAccessException, InstantiationException, StoreException {
         if (String.class.equals(clazz)) {
             return string;
-        } if (ProxyList.class.isAssignableFrom(clazz)) {
-//            List proxyList = swap.newWrapList(elementClass);
-            List proxyList = new ProxyList(swap, elementClass, uuid, Swap.DONT_UNLOAD); // TODO UUID???
-            return proxyList;
+        }
+        if (ProxyList.class.isAssignableFrom(clazz)) {
+////            List proxyList = swap.newWrapList(elementClass);
+//            List proxyList = new ProxyList(swap, elementClass, uuid, Swap.DONT_UNLOAD); // TODO UUID???
+//            return proxyList;
+            return string; // TODO get this method out somewhere
         } else {
-            Constructor constructor = clazz.getConstructor();
-            return constructor.newInstance();
+            if (RECORD_TYPE.LIST_ELEMENT.equals(recordType)) {
+                return string;
+            } else {
+                Constructor constructor = clazz.getConstructor();
+                return constructor.newInstance();
+            }
         }
     }
 
     @Override
     public Iterator<Locator> iterator() {
         try {
-            Statement statement = connection.createStatement();
+            Statement statement = createStatement();
             final ResultSet rs = statement.executeQuery("SELECT id as id, path as path from FIELDS");
             List<Locator> locators = new ArrayList<Locator>();
             while (!rs.isAfterLast()) {
@@ -317,13 +375,17 @@ public class H2FieldStorage implements FieldStorage, UUIDGenerator {
     }
 
     public void finalize() throws Throwable {
-        connection.commit();
-        connection.close();
+        synchronized (connection) {
+            connection.commit();
+            connection.close();
+            connection = null;
+        }
         super.finalize();
     }
 
     public void cleanAll() throws SQLException {
-        Statement statement = connection.createStatement();
+        Statement statement = createStatement();
         statement.executeUpdate("DELETE from FIELDS");
     }
+
 }

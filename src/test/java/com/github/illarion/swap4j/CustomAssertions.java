@@ -5,9 +5,11 @@ import com.github.illarion.swap4j.store.scan.*;
 import org.hamcrest.BaseMatcher;
 import org.hamcrest.Description;
 import org.hamcrest.Matcher;
+import org.hamcrest.StringDescription;
 
 import java.util.HashSet;
 import java.util.Set;
+import java.util.UUID;
 
 import static junit.framework.Assert.assertEquals;
 import static junit.framework.Assert.assertTrue;
@@ -29,7 +31,20 @@ public class CustomAssertions {
     }
 
     public static void assertGreaterOrEqual(String message, int a, int b) {
-        assertTrue(message, a >= b);
+        assertThat(message, a, greaterOrEqualTo(b));
+    }
+
+    private static Matcher<Integer> greaterOrEqualTo(final int number) {
+        return new BaseMatcher<Integer>() {
+            @Override
+            public boolean matches(Object item) {
+                return (Integer)item >= number;
+            }
+            @Override
+            public void describeTo(Description description) {
+                description.appendText(">=").appendValue(number);
+            }
+        };
     }
 
     /**
@@ -45,17 +60,17 @@ public class CustomAssertions {
             final Locator locator = fieldRecord.getLocator();
             FieldRecord restored = fieldStorage.read(locator);
             if (fieldRecord == null) {
-                fail("Don't pass nulls to assertStorageContains!\n" + dumpStoreContents(fieldStorage));
+                fail("Don't pass nulls to assertStorageContains!\n" + dumpStoreContents(fieldStorage, "Present objects in storage"));
             }
             if (restored == null) {
-                fail("Not found: " + fieldRecord + "\n" + dumpStoreContents(fieldStorage));
+                fail("Not found: " + fieldRecord + "\n" + dumpStoreContents(fieldStorage, "Present objects in storage"));
             }
-            assertFieldRecordsMatch("Other object found in store than expected:\n" + dumpStoreContents(fieldStorage),
+            assertFieldRecordsMatch("Other object found in store than expected:\n" + dumpStoreContents(fieldStorage, "Present objects in storage"),
                     fieldRecord, restored);
             locators.add(locator);
         }
-        assertGreaterOrEqual("Make sure you don't have repeating IDs when calling assertStoreContains()",
-                expected.length, locators.size());
+        assertThat("Make sure you don't have repeating IDs when calling assertStoreContains()",
+                expected.length, greaterOrEqualTo(locators.size()));
         assertEquals("Extra expected found in storage", expected.length, locators.size());
     }
 
@@ -69,6 +84,40 @@ public class CustomAssertions {
 
     public static Matcher<FieldRecord> recordTypeIsProxiedValue() {
         return recordTypeIs(RECORD_TYPE.PROXIED_VALUE);
+    }
+
+    public static FeatureMatcher<FieldRecord, RECORD_TYPE> recordTypeIsListElement() {
+        return recordTypeIs(RECORD_TYPE.LIST_ELEMENT);
+    }
+
+    public static FeatureMatcher<FieldRecord, RECORD_TYPE> recordTypeIsListField() {
+        return recordTypeIs(RECORD_TYPE.LIST_FIELD);
+    }
+
+    public static FeatureMatcher<FieldRecord, String> pathIs(String expectedPath) {
+        return new FeatureMatcher<FieldRecord, String>(equalTo(expectedPath), "path", "path") {
+            @Override
+            protected String featureValueOf(FieldRecord actual) {
+                return actual.getLocator().getPath();
+            }
+        };
+    }
+
+    public static FeatureMatcher<FieldRecord, UUID> idIs(int expectedId) {
+        return new FeatureMatcher<FieldRecord, UUID>(equalTo(new UUID(0, expectedId)), "id", "id") {
+            @Override
+            protected UUID featureValueOf(FieldRecord actual) {
+                return actual.getId();
+            }
+        };
+    }
+
+    public static FeatureMatcher<FieldRecord, Object> valueIsUuidStr(long uuid) {
+        return valueIsUuidStr(new UUID(0, uuid));
+    }
+
+    static FeatureMatcher<FieldRecord, Object> valueIsUuidStr(UUID uuid) {
+        return valueIs(uuid.toString());
     }
 
     public static class PositionalMatcher<T> extends BaseMatcher<T> {
@@ -111,24 +160,37 @@ public class CustomAssertions {
      * @throws com.github.illarion.swap4j.store.StoreException
      */
     public static void assertStorageContains(FieldStorage fieldStorage, PositionalMatcher<FieldRecord>... expected) throws StoreException {
-        Set<Locator> locators = new HashSet<Locator>();
+        Set<Locator> seenLocators = new HashSet<Locator>();
+        String expectedRecords = "Expected records:\n" + dumpExpectedRecords(expected);
+        String actualRecords = dumpStoreContents(fieldStorage, "Actual FieldRecords");
+
         for (PositionalMatcher<FieldRecord> matcher : expected) {
             final Locator locator = matcher.getLocator();
             FieldRecord actual = fieldStorage.read(locator);
             if (matcher == null) {
-                fail("Don't pass nulls to assertStorageContains!\n" + dumpStoreContents(fieldStorage));
+                fail("Don't pass nulls to assertStorageContains!\n" + dumpStoreContents(fieldStorage, "Present objects in storage"));
             }
             if (actual == null) {
-                fail("Not found: " + matcher + "\n" + dumpStoreContents(fieldStorage));
+                fail("Not found: " + matcher + "\n" + dumpStoreContents(fieldStorage, "Present objects in storage"));
             }
-            assertThat("Other object found in store than expected:\n", actual, matcher);
-//            assertFieldRecordsMatch("Other object found in store than expected:\n" + dumpStoreContents(fieldStorage),
-//                    pm, restored);
-            locators.add(locator);
+            assertThat("Other object found in store than expected.\n" + expectedRecords + actualRecords, actual, matcher);
+            seenLocators.add(locator);
         }
-        assertGreaterOrEqual("Make sure you don't have repeating IDs when calling assertStoreContains()",
-                expected.length, locators.size());
-        assertEquals("Extra expected found in storage", expected.length, locators.size());
+        assertThat("Make sure you don't have repeating locators when calling assertStoreContains()",
+                expected.length, greaterOrEqualTo(seenLocators.size()));
+//        assertEquals("Extra expected found in storage", expected.length, seenLocators.size());
+        String extraRecords = dumpStoreContents(fieldStorage, seenLocators, "Extra FieldRecords");
+        assertEquals("Extra records found in storage - " + extraRecords + "\n"
+                + expectedRecords + actualRecords 
+                , expected.length, fieldStorage.getRecordCount());
+    }
+
+    private static String dumpExpectedRecords(PositionalMatcher<FieldRecord>[] expected) {
+        Description description = new StringDescription();
+        for (Matcher<FieldRecord> matcher : expected) {
+            description.appendDescriptionOf(matcher).appendText("\n");
+        }
+        return description.toString();
     }
 
 
@@ -206,19 +268,25 @@ public class CustomAssertions {
         };
     }
 
-    private static String dumpStoreContents(FieldStorage fieldStorage) {
-        StringBuilder builder = new StringBuilder("Present objects in storage: [\n");
+    private static String dumpStoreContents(FieldStorage fieldStorage, String title) {
+        return dumpStoreContents(fieldStorage, new HashSet<Locator>(), title);
+    }
+
+    private static String dumpStoreContents(FieldStorage fieldStorage, Set<Locator> except, String title) {
+        StringBuilder builder = new StringBuilder(title).append(": [\n");
         for (Locator locator: fieldStorage) {
-            builder.append(locator).append(" => ").append(fieldStorage.read(locator)).append("\n");
+            if (!except.contains(locator)) {
+                builder.append(locator).append(" => ").append(fieldStorage.read(locator)).append("\n");
+            }
         }
         return builder.append("]").toString();
     }
 
     public static FieldRecord obj(int id, String path, Object value, Class clazz, RECORD_TYPE recordType) {
-        return new FieldRecord(id, path, value, clazz, recordType);
+        return new FieldRecordBuilder(id, path).setValue(value).setClazz(clazz).setRecordType(recordType).create();
     }
 
     public static FieldRecord obj(int id, String path, Object value, Class clazz, Class elementClass, RECORD_TYPE type) {
-        return new FieldRecord(id, path, value, clazz, elementClass, type);
+        return new FieldRecordBuilder(id, path).setValue(value).setClazz(clazz).setElementClass(elementClass).setRecordType(type).create();
     }
 }
