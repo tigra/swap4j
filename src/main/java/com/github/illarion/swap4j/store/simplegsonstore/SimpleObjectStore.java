@@ -20,6 +20,7 @@ import java.io.FileReader;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.util.Iterator;
+import java.util.List;
 import java.util.UUID;
 
 import net.sf.cglib.proxy.Enhancer;
@@ -155,5 +156,10 @@ public class SimpleObjectStore implements ObjectStorage {
     public <T> void storeProxyList(UUID uuid, ProxyList proxyList, Class elementClass) throws StoreException {
         throw new UnsupportedOperationException(""); // TODO Implement this method
 
+    }
+
+    @Override
+    public <T> List<T> reStoreList(UUID uuid, Class<T> elementClass, List<T> restored) {
+        throw new UnsupportedOperationException(""); // TODO Implement this method
     }
 }

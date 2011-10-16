@@ -14,12 +14,12 @@ import java.util.List;
 public class Baz {
     private String value = "baz";
     private List<Baz> children = null;
-    private transient Swap swap = null;
+//    private transient Swap swap = null;
 
-    public Baz(Swap swap, String value) throws StoreException {
+    public Baz(String value) throws StoreException {
         this.value = value;
-        children = swap.newWrapList(Baz.class);
-        this.swap = swap;
+        children = Swap.getInstance().newWrapList(Baz.class);
+//        this.swap = swap;
     }
 
     public Baz() {
@@ -28,7 +28,7 @@ public class Baz {
 
     public void add(Baz elem) throws StoreException {
         if (null == children) {
-            children = swap.newWrapList(Baz.class);
+            children = Swap.getInstance().newWrapList(Baz.class);
         }
         children.add(elem);
     }

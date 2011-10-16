@@ -49,4 +49,6 @@ public interface FieldStorage extends Iterable<Locator> {
     void setSwap(Swap swap);
 
     long getRecordCount();
+
+    <T> List<FieldRecord> readElementRecords(UUID uuid, Class<T> elementClass);
 }

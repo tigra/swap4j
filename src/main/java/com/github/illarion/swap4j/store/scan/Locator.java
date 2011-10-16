@@ -5,7 +5,7 @@ import java.util.List;
 import java.util.StringTokenizer;
 import java.util.UUID;
 
-public class Locator implements Comparable<Locator>{
+public class Locator implements Comparable<Locator> {
     private String path;
     private UUID id;
 
@@ -40,16 +40,8 @@ public class Locator implements Comparable<Locator>{
     @Override
     public String toString() {
         final StringBuilder sb = new StringBuilder();
-        sb.append(shortRepresentation(id)).append(path);
+        sb.append(ID.shortRepresentation(id)).append(path);
         return sb.toString();
-    }
-
-    private String shortRepresentation(UUID id) {
-        if (null == id) {
-            return null;
-        } else {
-            return Long.toHexString(id.getMostSignificantBits()) + "-" + Long.toHexString(id.getLeastSignificantBits());
-        }
     }
 
     @SuppressWarnings({"RedundantIfStatement"})
@@ -99,16 +91,23 @@ public class Locator implements Comparable<Locator>{
     }
 
     public List<String> getParsedPath() {
-        StringTokenizer tokenizer = new StringTokenizer(path, "/");
+        StringTokenizer tokenizer = new StringTokenizer(path, "/[", true);
         List<String> parsedPath = new ArrayList<String>();
 
         if (!tokenizer.hasMoreTokens()) {
             throw new IllegalArgumentException("Invalid path: " + path);
         }
-        tokenizer.nextToken(); // "."
+        tokenizer.nextToken(); // skip "."
 
         while (tokenizer.hasMoreTokens()) {
-            parsedPath.add(tokenizer.nextToken());
+            String token = tokenizer.nextToken();
+            if ("[".equals(token)) {
+                if (tokenizer.hasMoreTokens()) {
+                    parsedPath.add("[" + tokenizer.nextToken()); // list element
+                }
+            } else if (!"/".equals(token)) {
+                parsedPath.add(token);
+            }
         }
 
         return parsedPath;

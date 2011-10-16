@@ -146,12 +146,12 @@ public class StoreSingleObjectTest {
 
     @Test
     public void testNestedList() throws StoreException {
-        Baz root = swap.wrap(new Baz(swap, "/"), Baz.class);
-        Baz c1 = new Baz(swap, "c1");
-        Baz c2 = new Baz(swap, "c2");
-        Baz c3 = new Baz(swap, "c3");
-        Baz c11 = new Baz(swap, "c11");
-        Baz c12 = new Baz(swap, "c12");
+        Baz root = swap.wrap(new Baz("/"), Baz.class);
+        Baz c1 = new Baz("c1");
+        Baz c2 = new Baz("c2");
+        Baz c3 = new Baz("c3");
+        Baz c11 = new Baz("c11");
+        Baz c12 = new Baz("c12");
         root.add(c1);
         root.add(c2);
         root.add(c3);

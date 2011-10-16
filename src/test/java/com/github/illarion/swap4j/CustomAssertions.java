@@ -8,6 +8,7 @@ import org.hamcrest.Matcher;
 import org.hamcrest.StringDescription;
 
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 
@@ -15,6 +16,7 @@ import static junit.framework.Assert.assertEquals;
 import static junit.framework.Assert.assertTrue;
 import static junit.framework.Assert.fail;
 import static org.hamcrest.CoreMatchers.equalTo;
+import static org.hamcrest.CoreMatchers.not;
 import static org.junit.Assert.assertThat;
 
 /**
@@ -118,6 +120,80 @@ public class CustomAssertions {
 
     static FeatureMatcher<FieldRecord, Object> valueIsUuidStr(UUID uuid) {
         return valueIs(uuid.toString());
+    }
+
+    public static <T> Matcher<List<T>> containsOneElement() {
+        return new BaseMatcher<List<T>>() {
+            @Override
+            public boolean matches(Object item) {
+                List<T> list = (List<T>) item;
+                return null != list && list.size() == 1;
+            }
+            @Override
+            public void describeTo(Description description) {
+                description.appendText("list containing any single element");
+            }
+        };
+    }
+
+
+    public static <T> Matcher<List<T>> containsOneElement(final T expectedElement) {
+        return new BaseMatcher<List<T>>() {
+            @Override
+            public boolean matches(Object item) {
+                List<T> list = (List<T>) item;
+                return null != list && list.size() == 1 && list.contains(expectedElement);
+            }
+            @Override
+            public void describeTo(Description description) {
+                description.appendText("list containing single element:").appendValue(expectedElement);
+            }
+        };
+    }
+
+    public static <T> Matcher<List<? extends T>> isEmpty() {
+        return new BaseMatcher<List<? extends T>>() {
+            @Override
+            public boolean matches(Object item) {
+                return item instanceof List && ((List<T>)item).isEmpty();
+            }
+            @Override
+            public void describeTo(Description description) {
+                description.appendText("empty list");
+            }
+        };
+    }
+
+    public static <T> Matcher<List<T>> containsElements(final T... expected) {
+        return new BaseMatcher<List<T>>() {
+            @Override
+            public boolean matches(Object item) {
+                if (!(item instanceof List)) {
+                    return false;
+                }
+                List list = (List)item;
+                if (expected.length != list.size()) {
+                    return false;
+                }
+                for (int i = 0; i < expected.length; i++) {
+                    T expectedElement = expected[i];
+                    Object actualElement = list.get(i);
+                    if (not(equalTo(expectedElement)).matches(actualElement)) {
+                        return false;
+                    }
+                }
+                return true;
+            }
+
+            @Override
+            public void describeTo(Description description) {
+                description.appendText("List [");
+                for (T e : expected) {
+                    description.appendValue(e).appendText(", ");
+                }
+                description.appendText("]");
+            }
+        };
     }
 
     public static class PositionalMatcher<T> extends BaseMatcher<T> {

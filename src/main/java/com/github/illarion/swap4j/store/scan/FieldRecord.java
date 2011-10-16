@@ -153,12 +153,12 @@ public class FieldRecord<T> implements Comparable<FieldRecord<T>> {
      * @throws NoSuchFieldException
      * @throws IllegalAccessException
      */
-    public void writeTo(Object object) throws NoSuchFieldException, IllegalAccessException, StoreException {
+    public Object writeTo(Object object) throws NoSuchFieldException, IllegalAccessException, StoreException {
         if (locator.isRoot()) {
-            return; // can't set object itself, ignoring
+            return null; // can't set object itself, ignoring
         }
         ObjectStructure structure = getObjectStructure(object);
-        structure.writeTo(object, this);
+        return structure.writeTo(object, this);
     }
 
     private ObjectStructure getObjectStructure(Object object) {
@@ -195,5 +195,13 @@ public class FieldRecord<T> implements Comparable<FieldRecord<T>> {
 
     public Class getElementClass() {
         return elementClass;
+    }
+
+    boolean isListElement() {
+        return RECORD_TYPE.LIST_ELEMENT == getRecordType();
+    }
+
+    UUID getValueAsUuid() {
+        return UUID.fromString((String) getValue());
     }
 }

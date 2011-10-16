@@ -2,15 +2,20 @@ package com.github.illarion.swap4j;
 
 import com.github.illarion.swap4j.store.ObjectStorage;
 import com.github.illarion.swap4j.store.StoreException;
+import com.github.illarion.swap4j.store.scan.FieldRecordBuilder;
 import com.github.illarion.swap4j.store.scan.FieldStorage;
+import com.github.illarion.swap4j.store.scan.RECORD_TYPE;
 import com.github.illarion.swap4j.swap.Proxy;
 import com.github.illarion.swap4j.swap.ProxyList;
 import com.github.illarion.swap4j.swap.Swap;
+import junit.framework.TestCase;
+import org.hamcrest.Matcher;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Ignore;
 import org.junit.Test;
 
+import javax.imageio.plugins.bmp.BMPImageWriteParam;
 import java.sql.SQLException;
 import java.util.List;
 import java.util.Set;
@@ -18,7 +23,12 @@ import java.util.UUID;
 
 import static com.github.illarion.swap4j.CustomAssertions.*;
 import static com.github.illarion.swap4j.CustomAssertions.elementClassIs;
+import static com.github.illarion.swap4j.store.scan.RECORD_TYPE.*;
+import static org.hamcrest.Matchers.hasItem;
+import static org.hamcrest.core.AllOf.allOf;
+import static org.hamcrest.core.IsNull.notNullValue;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
 
 /**
@@ -26,10 +36,23 @@ import static org.junit.Assert.fail;
  *
  * @author Alexey Tigarev tigra@agile-algorithms.com
  */
-public abstract class AbstractSimpleTest {
+public abstract class AbstractSimpleTest extends TestCase {
     protected Swap swap;
     protected ObjectStorage objectStore;
     protected FieldStorage fieldStorage;
+
+    public AbstractSimpleTest(String testMethodName) {
+        super(testMethodName);
+        try {            
+            setUp();
+        } catch (ClassNotFoundException e) {
+            fail();
+//            throw new IllegalStateException(e);
+        } catch (SQLException e) {
+//            throw new IllegalStateException(e);
+            fail();
+        }
+    }
 
     /**
      * Define this method in subclasses to run this set of tests on different <code>ObjectStorage</code>'s 
@@ -49,12 +72,13 @@ public abstract class AbstractSimpleTest {
 
     @After
     public void tearDown() throws InterruptedException {
-        Swap.shutdown();
-        System.gc();
-        Thread.sleep(100);
+        fieldStorage = null;
+        objectStore = null;
+        swap = null;
+        Swap.finishHim();
     }
 
-    @Test
+    @Test(timeout = 2000)
     public void testSwapSingleValue() throws StoreException {
 //        Swap swap = new Swap(objectStore);
 
@@ -66,7 +90,7 @@ public abstract class AbstractSimpleTest {
         assertEquals("too old", bar.getValue());
     }
 
-    @Test
+    @Test(timeout = 2000)
     public void testSwapList() throws StoreException {
 //        Swap swap = new Swap(objectStore);
 
@@ -81,10 +105,11 @@ public abstract class AbstractSimpleTest {
     }
 
     @Test
+    @Ignore
     public void testSimpleNestedList() throws StoreException {
-        Baz root = swap.wrap(new Baz(swap, "root"), Baz.class);
-        Baz inside = swap.wrap(new Baz(swap, "inside"), Baz.class);
-        Baz deepInside = swap.wrap(new Baz(swap, "deepInside"), Baz.class);
+        Baz root = swap.wrap(new Baz("root"), Baz.class);
+        Baz inside = swap.wrap(new Baz("inside"), Baz.class);
+        Baz deepInside = swap.wrap(new Baz("deepInside"), Baz.class);
         root.add(inside); // TODO call getter of swapped, add to ProxyList - test
         inside.add(deepInside);
 
@@ -109,21 +134,20 @@ public abstract class AbstractSimpleTest {
 
     @Test
     public void testEmptySwapListInsideWrapped() throws StoreException {
-        Baz baz = swap.wrap(new Baz(swap, "baz"), Baz.class);
+        Baz baz = swap.wrap(new Baz("baz"), Baz.class);
 
         assertStorageContains(fieldStorage,
                 at(0, ".[", clazzIs(ProxyList.class).and(elementClassIs(Baz.class)).and(recordTypeIsProxyList())),
-                
+
                 at(1, ".", clazzIs(Baz.class).and(recordTypeIsProxiedValue())),
                 at(1, "./value", valueIs("baz").and(clazzIs(String.class).and(recordTypeIsPrimitiveField()))),
                 at(1, "./children", valueIsUuidStr(0).and(clazzIs(ProxyList.class).and(elementClassIs(Baz.class).and(recordTypeIsListField()))))
         );
     }
 
-
     @Test
     public void testSwapListInsideProxyAddRegular() throws StoreException {
-        Baz root = new Baz(swap, "root");
+        Baz root = new Baz("root");
         Proxy<Baz> bazProxy = new Proxy<Baz>(objectStore, root, Baz.class);
 
         assertStorageContains(fieldStorage,
@@ -134,7 +158,7 @@ public abstract class AbstractSimpleTest {
                 at(1, "./children", valueIsUuidStr(0).and(clazzIs(ProxyList.class).and(elementClassIs(Baz.class).and(recordTypeIsListField()))))
         );
 
-        Baz inside = new Baz(swap, "inside");
+        Baz inside = new Baz("inside");
         root.add(inside);
 
         assertStorageContains(fieldStorage,
@@ -151,9 +175,10 @@ public abstract class AbstractSimpleTest {
         ); // TODO Check what is part of what list?
     }
 
+
     @Test
     public void testSwapListInsideProxyAddWrapped() throws StoreException {
-        Baz root = new Baz(swap, "root");
+        Baz root = new Baz("root");
         Proxy<Baz> bazProxy = new Proxy<Baz>(objectStore, root, Baz.class);
 
         assertStorageContains(fieldStorage,
@@ -164,7 +189,7 @@ public abstract class AbstractSimpleTest {
                 at(1, "./children", valueIsUuidStr(0).and(clazzIs(ProxyList.class).and(elementClassIs(Baz.class).and(recordTypeIsListField()))))
         );
 
-        Baz inside = swap.wrap(new Baz(swap, "inside"), Baz.class);
+        Baz inside = swap.wrap(new Baz("inside"), Baz.class);
         root.add(inside);
 
         assertStorageContains(fieldStorage,
@@ -182,10 +207,9 @@ public abstract class AbstractSimpleTest {
         ); // TODO Check what is part of what list?
     }
 
-
     @Test
     public void testSwapListInsideWrappedAddWrapped() throws StoreException {
-        Baz root = swap.wrap(new Baz(swap, "root"), Baz.class);
+        Baz root = swap.wrap(new Baz("root"), Baz.class);
 
         assertStorageContains(fieldStorage,
                 at(0, ".[", clazzIs(ProxyList.class).and(elementClassIs(Baz.class).and(recordTypeIsProxyList()))),
@@ -195,7 +219,7 @@ public abstract class AbstractSimpleTest {
                 at(1, "./children", valueIsUuidStr(0).and(clazzIs(ProxyList.class)).and(elementClassIs(Baz.class)).and(recordTypeIsListField()))
         );
 
-        Baz inside = new Baz(swap, "inside");
+        Baz inside = new Baz("inside");
         root.add(inside);
 
         assertStorageContains(fieldStorage,
@@ -204,7 +228,7 @@ public abstract class AbstractSimpleTest {
 
                 at(1, ".", clazzIs(Baz.class).and(recordTypeIsProxiedValue())),
                 at(1, "./value", valueIs("root").and(clazzIs(String.class).and(recordTypeIsPrimitiveField()))),
-                at(1, "./children", valueIsUuidStr(0).and(clazzIs(ProxyList.class).and(elementClassIs(Baz.class)).and(recordTypeIsListField()))),
+                at(1, "./children", allOf(valueIsUuidStr(0), clazzIs(ProxyList.class), elementClassIs(Baz.class), recordTypeIsListField())),
                 // root
 
                 at(2, ".[", clazzIs(ProxyList.class).and(elementClassIs(Baz.class).and(recordTypeIsProxyList()))),
@@ -224,23 +248,46 @@ public abstract class AbstractSimpleTest {
 
     @Test
     public void testSimplestNestedList() throws StoreException {
-        Baz root = swap.wrap(new Baz(swap, "root"), Baz.class);
-        Baz inside = swap.wrap(new Baz(swap, "inside"), Baz.class);
+        Baz root = swap.wrap(new Baz("root"), Baz.class);
+        Baz inside = swap.wrap(new Baz("inside"), Baz.class);
         root.add(inside);
+        
+        assertThat(root.getChildren(), allOf(notNullValue(), containsOneElement(inside)));
+        assertThat(root.getChildren().get(0).getChildren(), isEmpty());
 
         assertEquals(1, root.getChildren().size());
         assertEquals("inside", root.getChildren().get(0).getValue());
         assertEquals(0, inside.getChildren().size());
     }
 
+
     @Test
+    public void testRestoreProxyList() throws StoreException {
+        fieldStorage.serialize(new FieldRecordBuilder(3, ".").setValue("=Baz").setClazz(Baz.class).setRecordType(PROXIED_VALUE).create());
+        fieldStorage.serialize(new FieldRecordBuilder(3, "./value").setValue("inside").setClazz(String.class).setRecordType(PRIMITIVE_FIELD).create());
+        fieldStorage.serialize(new FieldRecordBuilder(3, "./children").setUuidValue(2).setClazz(ProxyList.class).setElementClass(Baz.class).setRecordType(LIST_FIELD).create());
+        fieldStorage.serialize(new FieldRecordBuilder(2, ".[").setValue("=ProxyList").setClazz(ProxyList.class).setElementClass(Baz.class).setRecordType(PROXY_LIST).create());
+        fieldStorage.serialize(new FieldRecordBuilder(1, ".").setValue("=Baz").setClazz(Baz.class).setRecordType(PROXIED_VALUE).create());
+        fieldStorage.serialize(new FieldRecordBuilder(1, "./value").setValue("root").setClazz(String.class).setRecordType(PRIMITIVE_FIELD).create());
+        fieldStorage.serialize(new FieldRecordBuilder(1, "./children").setUuidValue(0).setClazz(ProxyList.class).setElementClass(Baz.class).setRecordType(LIST_FIELD).create());
+        fieldStorage.serialize(new FieldRecordBuilder(0, ".[").setValue("=ProxyList").setClazz(ProxyList.class).setElementClass(Baz.class).setRecordType(PROXY_LIST).create());
+        fieldStorage.serialize(new FieldRecordBuilder(0, ".[0").setUuidValue(3).setClazz(Baz.class).setElementClass(Baz.class).setRecordType(LIST_ELEMENT).create());
+
+        Baz restoredRoot = objectStore.reStore(new UUID(0, 1), Baz.class);
+        assertThat(restoredRoot.getChildren(), allOf(notNullValue(), containsOneElement()));
+        assertThat(restoredRoot.getChildren().get(0).getChildren(), isEmpty());
+    }
+
+
+    @Test
+//        @Ignore
     public void testNestedList() throws StoreException {
-        Baz root = swap.wrap(new Baz(swap, "/"), Baz.class);
-        Baz c1 = swap.wrap(new Baz(swap, "c1"), Baz.class);
-        Baz c2 = swap.wrap(new Baz(swap, "c2"), Baz.class);
-        Baz c3 = swap.wrap(new Baz(swap, "c3"), Baz.class);
-        Baz c11 = swap.wrap(new Baz(swap, "c11"), Baz.class);
-        Baz c12 = swap.wrap(new Baz(swap, "c12"), Baz.class);
+        Baz root = swap.wrap(new Baz("/"), Baz.class);
+        Baz c1 = swap.wrap(new Baz("c1"), Baz.class);
+        Baz c2 = swap.wrap(new Baz("c2"), Baz.class);
+        Baz c3 = swap.wrap(new Baz("c3"), Baz.class);
+        Baz c11 = swap.wrap(new Baz("c11"), Baz.class);
+        Baz c12 = swap.wrap(new Baz("c12"), Baz.class);
         root.add(c1);
         root.add(c2);
         root.add(c3);
@@ -263,6 +310,7 @@ public abstract class AbstractSimpleTest {
     }
 
     @Test
+    @Ignore
     public void testBigSwapList() throws StoreException {
 //        Swap swap = new Swap(objectStore);
         List<Bar> list = swap.newWrapList(Bar.class);

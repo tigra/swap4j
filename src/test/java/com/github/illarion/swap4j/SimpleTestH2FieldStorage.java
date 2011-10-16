@@ -17,10 +17,21 @@ import org.junit.Before;
  * @author shaman
  */
 public class SimpleTestH2FieldStorage extends AbstractSimpleTest {
+    public SimpleTestH2FieldStorage(String testMethodName) {
+        super(testMethodName);
+    }
+
+    @Override
+    public void setUp() throws ClassNotFoundException, SQLException {
+        super.setUp();
+        cleanAll();
+    }
 
     @Before
     public void cleanAll() throws SQLException {
         ((H2FieldStorage)fieldStorage).cleanAll();
+        assertEquals("Can't start tests, database is full of mud",
+                0, fieldStorage.getRecordCount());
     }
 
     @Override
@@ -29,5 +40,6 @@ public class SimpleTestH2FieldStorage extends AbstractSimpleTest {
         fieldStorage = new H2FieldStorage(swap);
         return new H2ObjectStorage(swap, fieldStorage);
     }
+    
 
 }

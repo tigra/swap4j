@@ -1,5 +1,7 @@
 package com.github.illarion.swap4j.store.scan;
 
+import com.sun.corba.se.spi.orb.ORBVersionFactory;
+
 import java.util.UUID;
 
 public class FieldRecordBuilder<T> {
@@ -85,5 +87,9 @@ public class FieldRecordBuilder<T> {
             locator = new Locator(id, path);
         }
         return new FieldRecord(locator, value, clazz, elementClass, recordType);
+    }
+
+    public FieldRecordBuilder setUuidValue(int uuidValue) {
+        return setValue((T)new UUID(0, uuidValue).toString()); // TODO Bad cast
     }
 }

@@ -14,6 +14,10 @@ import java.sql.SQLException;
  */
 public class SimpleTestMapWriter extends AbstractSimpleTest {
 
+    public SimpleTestMapWriter(String testMethodName) {
+        super(testMethodName);
+    }
+
     /**
      * Define this method in subclasses to run this set of tests on different <code>ObjectStorage</code>'s
      *

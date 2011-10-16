@@ -81,4 +81,9 @@ public class MapWriter implements FieldStorage {
     public long getRecordCount() {
         return serializedObjects.size();
     }
+
+    @Override
+    public <T> List<FieldRecord> readElementRecords(UUID uuid, Class<T> elementClass) {
+        return new ArrayList<FieldRecord>();
+    }
 }

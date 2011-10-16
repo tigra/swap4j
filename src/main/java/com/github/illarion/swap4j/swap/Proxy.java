@@ -9,15 +9,20 @@ import com.github.illarion.swap4j.store.StoreException;
 
 import java.util.UUID;
 
+import com.github.illarion.swap4j.store.scan.ID;
 import net.sf.cglib.proxy.Callback;
 import net.sf.cglib.proxy.Enhancer;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * @author shaman
  */
-public class Proxy<T> implements Locatable<T> {
+public class Proxy<T> extends Swappable<T> implements Locatable<T> {
 
-    UUID id; // TODO Make sure they don't repeat
+    private static final Logger log = LoggerFactory.getLogger("Proxy");
+
+//    UUID id; // TODO Make sure they don't repeat
     transient final ObjectStorage objectStore;
     volatile T realObject;
     transient final Class<T> clazz;
@@ -31,6 +36,7 @@ public class Proxy<T> implements Locatable<T> {
         this.objectStore = objectStore;
         this.clazz = clazz;
         this.realObject = null;
+        Swap.register(this);
     }
 
     public Proxy(ObjectStorage objectStore, T realObject, Class<T> clazz) throws StoreException {
@@ -40,6 +46,7 @@ public class Proxy<T> implements Locatable<T> {
         this.objectStore = objectStore;
         this.realObject = realObject;
         this.clazz = clazz;
+        Swap.register(this);
         unload();
     }
 
@@ -59,23 +66,32 @@ public class Proxy<T> implements Locatable<T> {
     @Override
     public void unload() throws StoreException {
         synchronized (id) {
+            enter("unload");
+            log.debug("unload(), " + this);
 //            store.store(id, realObject);
             objectStore.store(id, this);
             realObject = null;
+            exit();
         }
     }
 
     @Override
     public void load() throws StoreException {
         synchronized (id) {
+            enter("load");
             if (null == realObject) {
+                log.debug("load(), " + this);
                 realObject = objectStore.reStore(id, clazz);
+            } else {
+                log.debug("already loaded - " + ID.shortRepresentation(id));
             }
+            exit();
         }
     }
 
     public T get() throws StoreException {
         synchronized (id) {
+            enter("get");
             if (null == realObject) {
                 load();
             }
@@ -87,9 +103,12 @@ public class Proxy<T> implements Locatable<T> {
 
             // TODO Try to use just one callback for all objects, store Proxy reference in wrapped object itself?
             try {
-                return (T) enhancer.create();
+                T enhanced = (T) enhancer.create();
+                return enhanced;
             } catch (ClassCastException cce) {
                 throw new StoreException("Proxy.get(), id=" + id + ",clazz=" + clazz, cce);
+            } finally {
+                exit();
             }
         }
 
@@ -97,8 +116,13 @@ public class Proxy<T> implements Locatable<T> {
 
     @Override
     protected void finalize() throws Throwable {
-        unload();
-        super.finalize();
+        enter("finalize");
+        try {
+            unload();
+            super.finalize();
+        } finally {
+            exit();
+        }
     }
 
     @Override
@@ -140,14 +164,18 @@ public class Proxy<T> implements Locatable<T> {
     @Override
     public String toString() {
         final StringBuilder sb = new StringBuilder();
-        sb.append("Proxy");
-        sb.append("{callback=").append(callback);
-        sb.append(", id=").append(id);
-        sb.append(", store=").append(objectStore);
-        sb.append(", realObject=").append(realObject);
-        sb.append(", clazz=").append(clazz);
+        sb.append("Proxy{");
+//        sb.append("{callback=").append(callback);
+        sb.append("id=").append(ID.shortRepresentation(id));
+//        sb.append(", store=").append(objectStore);
+        sb.append(", c=").append(shortClassName());
+//        sb.append(", r=").append(realObject);
         sb.append('}');
         return sb.toString();
+    }
+
+    private String shortClassName() {
+        return null == clazz ? "null" : clazz.getSimpleName();
     }
 
     public Class getClazz() {
@@ -165,5 +193,11 @@ public class Proxy<T> implements Locatable<T> {
 
     public boolean canUnload() {
         return depth <= 1;
+    }
+
+    @Override
+    public void nullify() {
+        realObject = null;
+        id = null;
     }
 }

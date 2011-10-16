@@ -6,10 +6,12 @@ package com.github.illarion.swap4j.store;
 
 import com.github.illarion.swap4j.store.scan.FieldRecord;
 import com.github.illarion.swap4j.store.scan.Locator;
+import com.github.illarion.swap4j.swap.Proxy;
 import com.github.illarion.swap4j.swap.ProxyList;
 import com.github.illarion.swap4j.swap.Swap;
 
 import java.util.Iterator;
+import java.util.List;
 import java.util.UUID;
 
 /**
@@ -64,5 +66,7 @@ public interface ObjectStorage extends Iterable<Locator> {
     @Deprecated // TODO Decouple Swap from ObjectStorage
     void setSwap(Swap swap);
 
-    <T> void storeProxyList(UUID uuid, ProxyList proxyList, Class elementClass) throws StoreException;
+    public <T> void storeProxyList(UUID uuid, ProxyList proxyList, Class elementClass) throws StoreException;
+
+    public <T> List<T> reStoreList(UUID uuid, Class<T> elementClass, List<T> restored) throws StoreException;
 }

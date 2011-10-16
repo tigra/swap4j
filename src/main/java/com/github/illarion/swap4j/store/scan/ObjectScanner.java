@@ -114,6 +114,7 @@ public class ObjectScanner {
     }
 
     private void visitProxyListField(Object object, Field field, Object fieldValue) throws StoreException {
+        // TODO remove some stuff here, it is done elvewhere
         ProxyList proxyListFieldValue = (ProxyList) fieldValue;
         objectContext.push(field.getName());
         Class elementClass = getElementClass(field);
@@ -223,7 +224,7 @@ public class ObjectScanner {
         // TODO Support Type properly, not cast to Class
         // TODO store elementClass in Proxy (?)
         int i = 0;
-        for (Object obj : list) {
+        for (Object obj : list.internalIterable()) {
             visitProxyListElement(obj, i++, (Class)elementClass);
         }
         objectContext.pop();
@@ -235,6 +236,7 @@ public class ObjectScanner {
         Proxy proxy = ProxyUtils.getProxy(obj);
         if (proxy != null) {
             objectContext.pushWithoutSlash(String.valueOf(pos));
+//            objectContext.push(String.valueOf(pos));
             write(objectContext.peek(), proxy.getId().toString(), clazz, clazz, RECORD_TYPE.LIST_ELEMENT);
             objectContext.pop();
 

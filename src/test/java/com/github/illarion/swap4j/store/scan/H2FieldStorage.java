@@ -4,6 +4,8 @@ import com.github.illarion.swap4j.store.StoreException;
 import com.github.illarion.swap4j.swap.ProxyList;
 import com.github.illarion.swap4j.swap.Swap;
 import com.github.illarion.swap4j.swap.UUIDGenerator;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
@@ -32,6 +34,8 @@ public class H2FieldStorage implements FieldStorage, UUIDGenerator {
     private Connection connection;
     private Swap swap;
     private int currentUuid = 0;
+    
+    private final static Logger log = LoggerFactory.getLogger("H2FieldStorage");
 
     public H2FieldStorage() throws ClassNotFoundException, SQLException {
         this(null);
@@ -103,6 +107,7 @@ public class H2FieldStorage implements FieldStorage, UUIDGenerator {
      */
     @Override
     public boolean clean(UUID uuid) {
+        log.debug("clean(" + ID.shortRepresentation(uuid) + ")");
         try {
             Statement statement = createStatement();   // TODO log count of existing fields
             int result = statement.executeUpdate("delete from FIELDS " + whereClause(uuid));
@@ -124,6 +129,7 @@ public class H2FieldStorage implements FieldStorage, UUIDGenerator {
 
     @Override
     public void serialize(FieldRecord representation) {
+        log.debug("serialize(" + representation + ")");
         synchronized (connection) {
             checkIfConnectionAlive();
             try {
@@ -188,6 +194,7 @@ public class H2FieldStorage implements FieldStorage, UUIDGenerator {
 
     @Override
     public FieldRecord read(Locator locator) {
+        log.debug("read(" + locator + ")");
         try {
             Statement statement = createStatement();
             ResultSet rs = statement.executeQuery("select * from FIELDS " + whereClause(locator));
@@ -233,16 +240,11 @@ public class H2FieldStorage implements FieldStorage, UUIDGenerator {
      */
     @Override
     public List<FieldRecord> readAll(UUID uuid) {
+        log.debug("readAll(" + ID.shortRepresentation(uuid) + ")");
         try {
-            List<FieldRecord> fieldRecords = new ArrayList<FieldRecord>();
-            Statement statement = createStatement();
-            ResultSet rs = statement.executeQuery("select id,path,value,class,elementClass,type from FIELDS " + whereClause(uuid));
-            while (!rs.isAfterLast()) {
-                rs.next();
-                if (!rs.isAfterLast()) {
-                    fieldRecords.add(readSerializedFieldFromResultSet(rs));
-                }
-            }
+            List<FieldRecord> fieldRecords = readFieldRecordsSelectedByQuery(
+                    "select id,path,value,class,elementClass,type from FIELDS " + whereClause(uuid));
+            log.debug("read: " + fieldRecords);
             return fieldRecords;
         } catch (SQLException e) {
             e.printStackTrace();
@@ -268,17 +270,27 @@ public class H2FieldStorage implements FieldStorage, UUIDGenerator {
         }
     }
 
+    private List<FieldRecord> readFieldRecordsSelectedByQuery(String query) throws SQLException, ClassNotFoundException, InvocationTargetException, NoSuchMethodException, InstantiationException, IllegalAccessException, StoreException {
+        Statement statement = createStatement();
+        ResultSet rs = statement.executeQuery(query);
+        List<FieldRecord> fieldRecords = readFieldRecordsFromResultSet(rs);
+        return fieldRecords;
+    }
+
+    private List<FieldRecord> readFieldRecordsFromResultSet(ResultSet rs) throws SQLException, ClassNotFoundException, InvocationTargetException, NoSuchMethodException, InstantiationException, IllegalAccessException, StoreException {
+        List<FieldRecord> fieldRecords = new ArrayList<FieldRecord>();
+        while (rs.next()) {
+            if (!rs.isAfterLast()) {
+                fieldRecords.add(readSerializedFieldFromResultSet(rs));
+            }
+        }
+        return fieldRecords;
+    }
+
     private Class<?> getClassFromResultSet(ResultSet rs, String fieldName) throws ClassNotFoundException, SQLException {
         String className = rs.getString(fieldName);
         return null == className ? null : Class.forName(className);
     }
-
-//    private FieldRecord rsToSF(Locator locator, ResultSet rs) throws SQLException, ClassNotFoundException, NoSuchMethodException, InvocationTargetException, InstantiationException, IllegalAccessException, StoreException {
-//        Class<?> clazz = getClassFromResultSet(rs, "class");
-//        Class elementClass = getClassFromResultSet(rs, "elementClass");
-//        Object value = valueFromString(rs.getString("value"), clazz, elementClass, null, recordType); // TODO will it need uuid (passed null)?
-//        return new FieldRecordBuilder(locator).setValue(value).setClazz(clazz).setElementClass(elementClass).setRecordType(RECORD_TYPE.values()[rs.getInt("type")]).create();
-//    }
 
     private FieldRecord readSerializedFieldFromResultSet(ResultSet rs) throws SQLException, ClassNotFoundException, InvocationTargetException, NoSuchMethodException, InstantiationException, IllegalAccessException, StoreException {
         UUID uuid = UUID.fromString(rs.getString("id"));
@@ -386,6 +398,37 @@ public class H2FieldStorage implements FieldStorage, UUIDGenerator {
     public void cleanAll() throws SQLException {
         Statement statement = createStatement();
         statement.executeUpdate("DELETE from FIELDS");
+        commit();
     }
 
+    @Override
+    public <T> List<FieldRecord> readElementRecords(UUID uuid, Class<T> elementClass) {
+        log.debug("readElementRecords(" + ID.shortRepresentation(uuid) + ", " + elementClass + ")");
+        try {
+            return readFieldRecordsSelectedByQuery(
+                    "select id,path,value,class,elementClass,type from FIELDS "
+                            + whereClause(uuid) + " and type=" + RECORD_TYPE.LIST_ELEMENT.ordinal());
+        } catch (SQLException e) {
+            e.printStackTrace();
+            return null;
+        } catch (ClassNotFoundException e) {
+            e.printStackTrace();
+            return null;
+        } catch (InvocationTargetException e) {
+            e.printStackTrace();
+            return null;
+        } catch (NoSuchMethodException e) {
+            e.printStackTrace();
+            return null;
+        } catch (InstantiationException e) {
+            e.printStackTrace();
+            return null;
+        } catch (IllegalAccessException e) {
+            e.printStackTrace();
+            return null;
+        } catch (StoreException e) {
+            e.printStackTrace();
+            return null;
+        }
+    }
 }

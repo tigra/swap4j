@@ -6,9 +6,11 @@ package com.github.illarion.swap4j.swap;
 
 import com.github.illarion.swap4j.store.ObjectStorage;
 import com.github.illarion.swap4j.store.StoreException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
-import java.util.List;
-import java.util.Set;
+import java.lang.ref.WeakReference;
+import java.util.*;
 
 /**
  * @author shaman
@@ -18,6 +20,11 @@ public class Swap {
 
     private final ObjectStorage objectStore;
     public static final boolean DONT_UNLOAD = false;
+
+    private final static Logger log = LoggerFactory.getLogger("Swap");
+
+    private final static Set<WeakReference<Swappable>> registry
+            = new HashSet<WeakReference<Swappable>>();
 
     private Swap(ObjectStorage objectStore) {
         this.objectStore = objectStore;
@@ -33,9 +40,14 @@ public class Swap {
      * @throws StoreException
      */
     public <T> T wrap(T instance, Class<T> clazz) throws StoreException {
-        if (isWrapped(instance)) {
+        if (null == instance) {
+            log.debug("Swap.wrap - can't wrap null");
+            return null;
+        } else if (isWrapped(instance)) {
+            log.debug("Swap.wrap - already wrapped: " + ((SwapPowered) instance).getRealObject());
             return instance;
         } else {
+            log.debug("Swap.wrap - wrapping: " + instance);
             return new Proxy<T>(objectStore, instance, clazz).get();
         }
     }
@@ -77,8 +89,45 @@ public class Swap {
         return instance;
     }
 
-    public static void shutdown() {
+    public static <T> T newEmptyWrapper(UUID uuid, Class<T> clazz) throws StoreException {
+        return new Proxy<T>(uuid, getInstance().getStore(), clazz).get();
+    }
+
+    public static void register(Swappable swappable) {
+        registry.add(new WeakReference<Swappable>(swappable));
+    }
+
+    public static void finishHim() {
         instance = null;
         System.gc();
+        sleep(100);
+        int aliveObjectCount;
+        log.debug("Waiting for object finalization...");
+        do {
+            aliveObjectCount = 0;
+            Set<WeakReference<Swappable>> toRemove = new HashSet<WeakReference<Swappable>>();
+            Iterator<WeakReference<Swappable>> iterator = registry.iterator();
+            while (iterator.hasNext()) {
+                WeakReference<Swappable> ref = iterator.next();
+                Swappable swappable = ref.get();
+                if (swappable == null) {
+                    iterator.remove();
+                } else {
+                    log.debug("Still alive: " + swappable);
+                    swappable.nullify();
+                    aliveObjectCount++;
+                }
+            }
+            log.debug("Objects alive: " + aliveObjectCount);
+            sleep(100);
+        } while (aliveObjectCount > 0);
+    }
+
+    private static void sleep(int milliseconds) {
+        try {
+            Thread.sleep(milliseconds);
+        } catch (InterruptedException e) {
+            log.error("", e);
+        }
     }
 }
