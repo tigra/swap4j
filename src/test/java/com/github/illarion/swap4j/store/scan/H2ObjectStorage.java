@@ -1,5 +1,6 @@
 package com.github.illarion.swap4j.store.scan;
 
+import com.github.illarion.swap4j.store.StoreException;
 import com.github.illarion.swap4j.swap.Swap;
 import com.github.illarion.swap4j.swap.UUIDGenerator;
 
@@ -48,7 +49,7 @@ public class H2ObjectStorage extends ObjectFieldStorage implements UUIDGenerator
      * @return loaded <code>FieldRecord</code>
      */
     @Override
-    public FieldRecord getSerializedField(Locator locator) {
+    public FieldRecord getSerializedField(Locator locator) throws StoreException {
         return fieldStorage.read(locator);
     }
 }

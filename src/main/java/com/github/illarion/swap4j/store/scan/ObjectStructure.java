@@ -5,7 +5,9 @@ import com.github.illarion.swap4j.swap.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
+import java.lang.reflect.InvocationTargetException;
 import java.util.List;
 import java.util.UUID;
 
@@ -92,5 +94,24 @@ public class ObjectStructure extends ContextTracking {
     @Override
     protected String getContextInfo(String context) {
         return "ObjectTracking." + context;
+    }
+
+    static Object valueFromString(String string, Class clazz, Class<Object> elementClass, UUID uuid, RECORD_TYPE recordType) throws NoSuchMethodException, InvocationTargetException, IllegalAccessException, InstantiationException, StoreException {
+        if (String.class.equals(clazz)) {
+            return string;
+        }
+        if (ProxyList.class.isAssignableFrom(clazz)) {
+////            List proxyList = swap.newWrapList(elementClass);
+//            List proxyList = new ProxyList(swap, elementClass, uuid, Swap.DONT_UNLOAD); // TODO UUID???
+//            return proxyList;
+            return string; // TODO get this method out somewhere
+        } else {
+            if (RECORD_TYPE.LIST_ELEMENT.equals(recordType)) {
+                return string;
+            } else {
+                Constructor constructor = clazz.getConstructor();
+                return constructor.newInstance();
+            }
+        }
     }
 }

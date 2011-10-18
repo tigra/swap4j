@@ -61,7 +61,7 @@ public interface ObjectStorage extends Iterable<Locator> {
      * @param locator Locator identifying the field to load
      * @return loaded <code>FieldRecord</code>
      */
-    FieldRecord getSerializedField(Locator locator);
+    FieldRecord getSerializedField(Locator locator) throws StoreException;
 
     @Deprecated // TODO Decouple Swap from ObjectStorage
     void setSwap(Swap swap);

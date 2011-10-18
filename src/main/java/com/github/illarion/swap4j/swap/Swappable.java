@@ -3,6 +3,7 @@ package com.github.illarion.swap4j.swap;
 import com.github.illarion.swap4j.store.StoreException;
 import com.github.illarion.swap4j.store.scan.ID;
 import de.huxhorn.lilith.logback.classic.NDC;
+import org.slf4j.MDC;
 
 import java.util.UUID;
 
@@ -32,6 +33,18 @@ public abstract class Swappable<T> extends ContextTracking implements Locatable<
     @Override
     protected String getContextInfo(String context) {
         return String.format("ProxyList.%s() %s", context, ID.shortRepresentation(id));
+    }
+
+    @Override
+    protected void enter(String context) {
+        super.enter(context);
+        MDC.put("id", null == id ? "null" : id.toString());
+    }
+
+    @Override
+    protected void exit() {
+        super.exit();
+        MDC.remove("id");
     }
 
     public abstract void nullify();

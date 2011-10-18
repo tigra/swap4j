@@ -53,7 +53,7 @@ public class SwapCallback<T> implements MethodInterceptor {
                     }
                     Object result = mp.invoke(proxy.realObject, params);
                     if (proxy.canUnload()) {
-                        proxy.unload(); // should be reenterable. Nested calls don't have to do .unload() (?)
+                        proxy.unload(); // TODO should be reenterable. Nested calls don't have to do .unload() (?)
                     }
                     return result;
                 } finally {

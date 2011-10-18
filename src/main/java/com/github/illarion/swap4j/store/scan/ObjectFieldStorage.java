@@ -6,7 +6,10 @@ import com.github.illarion.swap4j.swap.ContextTracking;
 import com.github.illarion.swap4j.swap.ProxyList;
 import com.github.illarion.swap4j.swap.Swap;
 import com.github.illarion.swap4j.swap.UUIDGenerator;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
+import java.lang.reflect.InvocationTargetException;
 import java.util.List;
 import java.util.UUID;
 
@@ -16,9 +19,12 @@ import java.util.UUID;
  * @author Alexey Tigarev
  */
 public abstract class ObjectFieldStorage extends ContextTracking implements ObjectStorage {
+    private final static Logger log = LoggerFactory.getLogger("ObjectFieldStorage");
+
     FieldStorage fieldStorage;
     ObjectScanner scanner;
     UUIDGenerator uuidGenerator;
+
     private Swap swap;
 
     @Override
@@ -60,14 +66,19 @@ public abstract class ObjectFieldStorage extends ContextTracking implements Obje
                 return (T) proxyList;
             } else {
                 List<FieldRecord> fieldRecords = fieldStorage.readAll(id);
+                log.debug("records read:{}", fieldRecords);
                 if (fieldRecords.size() == 0) {
+                    log.error("Object not found in ObjectScannerStore.reStore(" + id + ", " + clazz);
                     throw new StoreException("Object not found in ObjectScannerStore.reStore(" + id + ", " + clazz);
                 }
-                T object = (T) fieldRecords.get(0).getValue();
+                FieldRecord rootRecord = fieldRecords.get(0);
+
+                T object = createRootObject(id, clazz, rootRecord);
+
                 for (FieldRecord fieldRecord : fieldRecords) {
                     if (fieldRecord.getRecordType() == RECORD_TYPE.LIST_FIELD) {
                         List emptyList = ((ProxyList) fieldRecord.writeTo(object)).getRealList();
-                        reStoreList(fieldRecord.getValueAsUuid(), fieldRecord.getElementClass(), emptyList);
+                        //reStoreList(fieldRecord.getValueAsUuid(), fieldRecord.getElementClass(), emptyList);
                     } else {
                         fieldRecord.writeTo(object);
                     }
@@ -89,6 +100,23 @@ public abstract class ObjectFieldStorage extends ContextTracking implements Obje
         } finally {
             exit();
         }
+    }
+
+    private <T> T createRootObject(UUID id, Class<T> clazz, FieldRecord rootRecord) throws IllegalAccessException, StoreException {
+        // TODO improve code here and don't do this inside FieldStorage
+        T object = (T) rootRecord.getValue();
+        if (object instanceof String) {
+            try {
+                object = (T) ObjectStructure.valueFromString((String)object, clazz, null, id, rootRecord.getRecordType());
+            } catch (NoSuchMethodException e) {
+                log.error("", e);
+            } catch (InvocationTargetException e) {
+                log.error("", e);
+            } catch (InstantiationException e) {
+                log.error("", e);
+            }
+        }
+        return object;
     }
 
     /**

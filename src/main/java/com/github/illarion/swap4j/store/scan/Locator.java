@@ -113,4 +113,12 @@ public class Locator implements Comparable<Locator> {
         return parsedPath;
     }
 
+    public boolean isListHead() {
+        throw new UnsupportedOperationException(""); // TODO Implement this method
+        //return false;
+    }
+
+    public boolean isListElementOf(UUID uuid) {
+        return id.equals(uuid) && getPath().matches(".*\\[.+");
+    }
 }

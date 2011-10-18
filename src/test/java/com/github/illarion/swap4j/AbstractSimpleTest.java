@@ -4,18 +4,16 @@ import com.github.illarion.swap4j.store.ObjectStorage;
 import com.github.illarion.swap4j.store.StoreException;
 import com.github.illarion.swap4j.store.scan.FieldRecordBuilder;
 import com.github.illarion.swap4j.store.scan.FieldStorage;
-import com.github.illarion.swap4j.store.scan.RECORD_TYPE;
 import com.github.illarion.swap4j.swap.Proxy;
 import com.github.illarion.swap4j.swap.ProxyList;
 import com.github.illarion.swap4j.swap.Swap;
 import junit.framework.TestCase;
-import org.hamcrest.Matcher;
+import org.hamcrest.MatcherAssert;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Ignore;
 import org.junit.Test;
 
-import javax.imageio.plugins.bmp.BMPImageWriteParam;
 import java.sql.SQLException;
 import java.util.List;
 import java.util.Set;
@@ -24,7 +22,10 @@ import java.util.UUID;
 import static com.github.illarion.swap4j.CustomAssertions.*;
 import static com.github.illarion.swap4j.CustomAssertions.elementClassIs;
 import static com.github.illarion.swap4j.store.scan.RECORD_TYPE.*;
+import static org.hamcrest.CoreMatchers.equalTo;
+import static org.hamcrest.CoreMatchers.sameInstance;
 import static org.hamcrest.Matchers.hasItem;
+import static org.hamcrest.Matchers.nullValue;
 import static org.hamcrest.core.AllOf.allOf;
 import static org.hamcrest.core.IsNull.notNullValue;
 import static org.junit.Assert.assertEquals;
@@ -43,15 +44,13 @@ public abstract class AbstractSimpleTest extends TestCase {
 
     public AbstractSimpleTest(String testMethodName) {
         super(testMethodName);
-        try {            
-            setUp();
-        } catch (ClassNotFoundException e) {
-            fail();
-//            throw new IllegalStateException(e);
-        } catch (SQLException e) {
-//            throw new IllegalStateException(e);
-            fail();
-        }
+//        try {
+//            setUp();
+//        } catch (ClassNotFoundException e) {
+//            fail();
+//        } catch (SQLException e) {
+//            fail();
+//        }
     }
 
     /**
@@ -80,8 +79,6 @@ public abstract class AbstractSimpleTest extends TestCase {
 
     @Test(timeout = 2000)
     public void testSwapSingleValue() throws StoreException {
-//        Swap swap = new Swap(objectStore);
-
         Bar bar = swap.wrap(new Bar("new"), Bar.class);
 
         bar.change("old");
@@ -117,7 +114,7 @@ public abstract class AbstractSimpleTest extends TestCase {
 //        assertEquals("Baz{(inside)[Baz{(deepInside)}]}",
 //                root.getChildren().get(0).toString());
         assertEquals("inside", root.getChildren().get(0).getValue());
-        assertEquals(1, inside.getChildren().size());
+        assertThat(inside.getChildren().size(), equalTo(1));
 
         assertEquals("deepInside",
                 root.getChildren().get(0).getChildren().get(0).getValue());
@@ -251,13 +248,27 @@ public abstract class AbstractSimpleTest extends TestCase {
         Baz root = swap.wrap(new Baz("root"), Baz.class);
         Baz inside = swap.wrap(new Baz("inside"), Baz.class);
         root.add(inside);
-        
+
         assertThat(root.getChildren(), allOf(notNullValue(), containsOneElement(inside)));
         assertThat(root.getChildren().get(0).getChildren(), isEmpty());
 
-        assertEquals(1, root.getChildren().size());
         assertEquals("inside", root.getChildren().get(0).getValue());
-        assertEquals(0, inside.getChildren().size());
+        assertEquals("One element expected", 1, root.getChildren().size());
+//        assertEquals(0, inside.getChildren().size());
+        MatcherAssert.assertThat(inside.getChildren(), nullValue());
+    }
+
+    @Test
+    public void testDoubleGetProxyListField() throws StoreException {
+        Baz root = swap.wrap(new Baz("root"), Baz.class);
+        Baz inside = swap.wrap(new Baz("inside"), Baz.class);
+        root.add(inside);
+
+        List<Baz> children1 = root.getChildren();
+        List<Baz> children2 = root.getChildren();
+//        assertThat(children1, sameInstance(children2));
+        assertEquals("Fist run should return 1", 1, children1.size());
+        assertEquals("Second run should return 1 also", 1, children2.size());
     }
 
 
@@ -341,28 +352,4 @@ public abstract class AbstractSimpleTest extends TestCase {
         set.iterator().next().change("5");
     }
 
-    public static class Bar {
-
-        String value = "new";
-
-        public Bar(String value) {
-            this.value = value;
-        }
-
-        public Bar() {
-        }
-
-        public void change(String change) {
-            value = change;
-        }
-
-        public String getValue() {
-            return value;
-        }
-
-        @Override
-        public String toString() {
-            return "Bar{" + "value=" + value + '}';
-        }
-    }
 }

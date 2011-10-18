@@ -5,6 +5,9 @@ import com.github.illarion.swap4j.swap.Proxy;
 import com.github.illarion.swap4j.swap.ProxyList;
 import com.github.illarion.swap4j.swap.ProxyUtils;
 import com.github.illarion.swap4j.swap.Utils;
+import de.huxhorn.lilith.logback.classic.NDC;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.lang.reflect.*;
 import java.util.*;
@@ -18,6 +21,8 @@ import java.util.*;
  * @author Alexey Tigarev
  */
 public class ObjectScanner {
+    private final static Logger log = LoggerFactory.getLogger("ObjectScanner");
+
     private FieldStorage writer;
     private final ObjectContext objectContext = new ObjectContext();
 
@@ -34,7 +39,7 @@ public class ObjectScanner {
         scanObject(null, object);
     }
 
-    public <E> void  scanObject(ProxyList<E> list, Class<E> elementClass) throws StoreException {
+    public <E> void scanObject(ProxyList<E> list, Class<E> elementClass) throws StoreException {
         scanProxyList(list, elementClass);
     }
 
@@ -52,7 +57,7 @@ public class ObjectScanner {
         }
         Class clazz = object.getClass();
         if (ProxyList.class.isAssignableFrom(clazz)) {
-            scanList((ProxyList)object, type);
+            scanList((ProxyList) object, type);
         } else if (clazz == String.class) { // primitive
             visitAtom(object, String.class);
         } else if (Proxy.class.isAssignableFrom(clazz)) {
@@ -96,7 +101,7 @@ public class ObjectScanner {
         for (Field field : fields) {
             final Class<?> fieldType = field.getType();
             final Object fieldValue = field.get(object);
-            if (field.isSynthetic() || Modifier.isTransient(field.getModifiers())) {
+            if (haveToSkip(field)) {
                 continue;
             }
             if (Proxy.class.isAssignableFrom(fieldType)) {
@@ -113,17 +118,38 @@ public class ObjectScanner {
         }
     }
 
+    /**
+     * Skip transient, static and syntetic fields
+     *
+     * @param field
+     * @return
+     */
+    private boolean haveToSkip(Field field) {
+        int modifiers = field.getModifiers();
+        return field.isSynthetic() || Modifier.isTransient(modifiers) || Modifier.isStatic(modifiers);
+    }
+
     private void visitProxyListField(Object object, Field field, Object fieldValue) throws StoreException {
-        // TODO remove some stuff here, it is done elvewhere
-        ProxyList proxyListFieldValue = (ProxyList) fieldValue;
-        objectContext.push(field.getName());
-        Class elementClass = getElementClass(field);
-        write(objectContext.peek(), proxyListFieldValue.getId().toString(), ProxyList.class, elementClass, RECORD_TYPE.LIST_FIELD);
-        // todo list reference (uuid) and elementClass
-        objectContext.pop();
-        visitProxyList2(field, ProxyList.class, proxyListFieldValue); // TODO is substitution of ProxyList here correct?
-        // TODO Problem: we have to serialize object based on its own class, not the field class
+        NDC.push(String.format("visitProxyListField(%s, %s, %s", object, field, fieldValue));
+        try {
+            // TODO remove some stuff here, it is done elvewhere
+            if (null == fieldValue) {
+                log.debug("fieldValue == null, not processing field: " + field);
+                return;
+            }
+            ProxyList proxyListFieldValue = (ProxyList) fieldValue;
+            objectContext.push(field.getName());
+            Class elementClass = getElementClass(field);
+            write(objectContext.peek(), proxyListFieldValue.getId().toString(), ProxyList.class,
+                    elementClass, RECORD_TYPE.LIST_FIELD);
+            // todo list reference (uuid) and elementClass
+            objectContext.pop();
+            visitProxyList2(field, ProxyList.class, proxyListFieldValue); // TODO is substitution of ProxyList here correct?
+            // TODO Problem: we have to serialize object based on its own class, not the field class
 //                throw new UnsupportedOperationException("TODO");
+        } finally {
+            NDC.pop();
+        }
     }
 
     private void visitProxyList2(Field field, Class<?> fieldType, ProxyList proxyListFieldValue) throws StoreException {
@@ -135,10 +161,10 @@ public class ObjectScanner {
         Type genericFieldType = field.getGenericType();
         Type elementClass = Object.class;
         if (genericFieldType instanceof ParameterizedType) {
-            ParameterizedType parameterizedType = (ParameterizedType)genericFieldType;
+            ParameterizedType parameterizedType = (ParameterizedType) genericFieldType;
             elementClass = parameterizedType.getActualTypeArguments()[0];
         }
-        return (Class)elementClass;
+        return (Class) elementClass;
     }
 
     private void visitProxy(Class clazz, Proxy proxy) throws StoreException, IllegalAccessException {
@@ -218,14 +244,20 @@ public class ObjectScanner {
     }
 
     private void visitProxyList(ProxyList list, Class clazz, Type elementClass) throws StoreException {
+        if (null == list) {
+            return;
+        }
         objectContext.push(list.getId(), "[");
 //        final Class clazz = list.getClazz();
-        write(objectContext.peek(), list, clazz, (Class)elementClass, RECORD_TYPE.PROXY_LIST); // TPDP
+        write(objectContext.peek(), list, clazz, (Class) elementClass, RECORD_TYPE.PROXY_LIST); // TPDP
         // TODO Support Type properly, not cast to Class
         // TODO store elementClass in Proxy (?)
         int i = 0;
-        for (Object obj : list.internalIterable()) {
-            visitProxyListElement(obj, i++, (Class)elementClass);
+        Iterable internalIterable = list.internalIterable();
+        if (null != internalIterable) {
+            for (Object obj : internalIterable) {
+                visitProxyListElement(obj, i++, (Class) elementClass);
+            }
         }
         objectContext.pop();
     }

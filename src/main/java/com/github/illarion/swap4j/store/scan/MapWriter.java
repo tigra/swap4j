@@ -1,5 +1,6 @@
 package com.github.illarion.swap4j.store.scan;
 
+import com.github.illarion.swap4j.store.StoreException;
 import com.github.illarion.swap4j.swap.Swap;
 
 import java.util.*;
@@ -14,11 +15,21 @@ import java.util.*;
  */
 public class MapWriter implements FieldStorage {
     Map<Locator, FieldRecord> serializedObjects = new HashMap<Locator, FieldRecord>();
+
     @Override
     public void serialize(FieldRecord representation) {
-        serializedObjects.put(representation.getLocator(), representation);
+        serializedObjects.put(representation.getLocator(), stringifyValue(representation));
     }
-    
+
+    private FieldRecord stringifyValue(FieldRecord representation) {
+        Object value = representation.getValue();
+        if (value != null) {
+            representation.setValue(value.toString());
+        }
+        return representation;
+    }
+
+
     FieldRecord get(Locator locator) {
         return serializedObjects.get(locator);
     }
@@ -44,8 +55,12 @@ public class MapWriter implements FieldStorage {
     }
 
     @Override
-    public FieldRecord read(Locator locator) {
-        return get(locator);
+    public FieldRecord read(Locator locator) throws StoreException {
+        FieldRecord record = get(locator);
+        if (null == record) {
+            throw new StoreException("Record not found", locator);           
+        }
+        return record;
     }
 
     @Override
@@ -84,6 +99,14 @@ public class MapWriter implements FieldStorage {
 
     @Override
     public <T> List<FieldRecord> readElementRecords(UUID uuid, Class<T> elementClass) {
-        return new ArrayList<FieldRecord>();
+        List<FieldRecord> read = new ArrayList<FieldRecord>();
+        for (Map.Entry<Locator, FieldRecord> entry : serializedObjects.entrySet()) {
+            Locator locator = entry.getKey();
+            if (locator.isListElementOf(uuid)) {
+                read.add(entry.getValue());
+            }
+        }
+        return read;
     }
+
 }

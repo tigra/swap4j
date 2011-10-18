@@ -1,13 +1,11 @@
 package com.github.illarion.swap4j.store.scan;
 
 import com.github.illarion.swap4j.store.StoreException;
-import com.github.illarion.swap4j.swap.ProxyList;
 import com.github.illarion.swap4j.swap.Swap;
 import com.github.illarion.swap4j.swap.UUIDGenerator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
 import java.sql.*;
 import java.util.ArrayList;
@@ -56,7 +54,7 @@ public class H2FieldStorage implements FieldStorage, UUIDGenerator {
             rs.next();
             return rs.getInt(1);
         } catch (SQLException e) {
-            e.printStackTrace();
+            log.error("Error getting record count", e);
             return -1;
         }
     }
@@ -76,7 +74,7 @@ public class H2FieldStorage implements FieldStorage, UUIDGenerator {
             }
             return new UUID(0, currentUuid);
         } catch (SQLException e) {
-            e.printStackTrace();
+            log.error("Error creating UUID", e);
             return null;
         }
     }
@@ -113,7 +111,7 @@ public class H2FieldStorage implements FieldStorage, UUIDGenerator {
             int result = statement.executeUpdate("delete from FIELDS " + whereClause(uuid));
             return result > 0;
         } catch (SQLException e) {
-            e.printStackTrace();
+            log.error("Error cleaning " + uuid, e);
             return false;
         }
     }
@@ -163,8 +161,7 @@ public class H2FieldStorage implements FieldStorage, UUIDGenerator {
                 }
                 commit();
             } catch (SQLException e) {
-//            log.error("", e);
-                e.printStackTrace();
+                log.error("Error serializing record", e);
             }
         }
     }
@@ -207,25 +204,25 @@ public class H2FieldStorage implements FieldStorage, UUIDGenerator {
             return readSerializedFieldFromResultSet(rs);
 //            return rsToSF(locator, rs);
         } catch (SQLException e) {
-            e.printStackTrace();
+            log.error("Error reading FieldRecord", e);
             return null; // TODO own exception
         } catch (ClassNotFoundException e) {
-            e.printStackTrace();
+            log.error("Error reading FieldRecord", e);
             return null; // TODO own exception
         } catch (NoSuchMethodException e) {
-            e.printStackTrace();
+            log.error("Error reading FieldRecord", e);
             return null; // TODO own exception
         } catch (InstantiationException e) {
-            e.printStackTrace();
+            log.error("Error reading FieldRecord", e);
             return null; // TODO own exception
         } catch (IllegalAccessException e) {
-            e.printStackTrace();
+            log.error("Error reading FieldRecord", e);
             return null; // TODO own exception
         } catch (InvocationTargetException e) {
-            e.printStackTrace();
+            log.error("Error reading FieldRecord", e);
             return null; // TODO own exception
         } catch (StoreException e) {
-            e.printStackTrace();
+            log.error("Error reading FieldRecord", e);
             return null; // TODO own exception
         }
     }
@@ -247,25 +244,25 @@ public class H2FieldStorage implements FieldStorage, UUIDGenerator {
             log.debug("read: " + fieldRecords);
             return fieldRecords;
         } catch (SQLException e) {
-            e.printStackTrace();
+            log.error("Error reading list of FieldRecord's", e);
             return null;
         } catch (ClassNotFoundException e) {
-            e.printStackTrace();
+            log.error("Error reading list of FieldRecord's", e);
             return null;
         } catch (NoSuchMethodException e) {
-            e.printStackTrace();
+            log.error("Error reading list of FieldRecord's", e);
             return null; // TODO own exception
         } catch (InstantiationException e) {
-            e.printStackTrace();
+            log.error("Error reading list of FieldRecord's", e);
             return null; // TODO own exception
         } catch (IllegalAccessException e) {
-            e.printStackTrace();
+            log.error("Error reading list of FieldRecord's", e);
             return null; // TODO own exception
         } catch (InvocationTargetException e) {
-            e.printStackTrace();
+            log.error("Error reading list of FieldRecord's", e);
             return null; // TODO own exception
         } catch (StoreException e) {
-            e.printStackTrace();
+            log.error("Error reading list of FieldRecord's", e);
             return null; // TODO own exception
         }
     }
@@ -297,32 +294,14 @@ public class H2FieldStorage implements FieldStorage, UUIDGenerator {
         FieldRecordBuilder builder = new FieldRecordBuilder(uuid, rs.getString("path"));
         Class<?> clazz = getClassFromResultSet(rs, "class");
         RECORD_TYPE recordType = RECORD_TYPE.values()[rs.getInt("type")];
-        Object value = valueFromString(rs.getString("value"), clazz, null, uuid, recordType);
+        Object value = ObjectStructure.valueFromString(rs.getString("value"), clazz, null, uuid, recordType);
+        // TODO don't do this here; have ObjectStorage do it
 
         builder.setValue(value);
         builder.setClazz(clazz);
         builder.setElementClass(getClassFromResultSet(rs, "elementClass"));
         builder.setRecordType(recordType);
         return builder.create();
-    }
-
-    private Object valueFromString(String string, Class clazz, Class<Object> elementClass, UUID uuid, RECORD_TYPE recordType) throws NoSuchMethodException, InvocationTargetException, IllegalAccessException, InstantiationException, StoreException {
-        if (String.class.equals(clazz)) {
-            return string;
-        }
-        if (ProxyList.class.isAssignableFrom(clazz)) {
-////            List proxyList = swap.newWrapList(elementClass);
-//            List proxyList = new ProxyList(swap, elementClass, uuid, Swap.DONT_UNLOAD); // TODO UUID???
-//            return proxyList;
-            return string; // TODO get this method out somewhere
-        } else {
-            if (RECORD_TYPE.LIST_ELEMENT.equals(recordType)) {
-                return string;
-            } else {
-                Constructor constructor = clazz.getConstructor();
-                return constructor.newInstance();
-            }
-        }
     }
 
     @Override
@@ -370,7 +349,7 @@ public class H2FieldStorage implements FieldStorage, UUIDGenerator {
 //                }
 //            };
         } catch (SQLException e) {
-            e.printStackTrace();
+            log.error("Error getting iterator over H2FieldStorage", e);
             return null;
         }
     }
@@ -409,25 +388,25 @@ public class H2FieldStorage implements FieldStorage, UUIDGenerator {
                     "select id,path,value,class,elementClass,type from FIELDS "
                             + whereClause(uuid) + " and type=" + RECORD_TYPE.LIST_ELEMENT.ordinal());
         } catch (SQLException e) {
-            e.printStackTrace();
+            log.error("Error reading list element records", e);
             return null;
         } catch (ClassNotFoundException e) {
-            e.printStackTrace();
+            log.error("Error reading list element records", e);
             return null;
         } catch (InvocationTargetException e) {
-            e.printStackTrace();
+            log.error("Error reading list element records", e);
             return null;
         } catch (NoSuchMethodException e) {
-            e.printStackTrace();
+            log.error("Error reading list element records", e);
             return null;
         } catch (InstantiationException e) {
-            e.printStackTrace();
+            log.error("Error reading list element records", e);
             return null;
         } catch (IllegalAccessException e) {
-            e.printStackTrace();
+            log.error("Error reading list element records", e);
             return null;
         } catch (StoreException e) {
-            e.printStackTrace();
+            log.error("Error reading list element records", e);
             return null;
         }
     }

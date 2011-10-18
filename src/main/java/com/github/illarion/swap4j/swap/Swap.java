@@ -119,6 +119,7 @@ public class Swap {
                 }
             }
             log.debug("Objects alive: " + aliveObjectCount);
+            System.gc();
             sleep(100);
         } while (aliveObjectCount > 0);
     }
@@ -129,5 +130,9 @@ public class Swap {
         } catch (InterruptedException e) {
             log.error("", e);
         }
+    }
+
+    public static <T> List<T> proxyList(Class<T> clazz) throws StoreException {
+        return getInstance().newWrapList(clazz);
     }
 }

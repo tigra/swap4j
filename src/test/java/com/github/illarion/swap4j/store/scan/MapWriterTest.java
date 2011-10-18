@@ -1,6 +1,9 @@
 package com.github.illarion.swap4j.store.scan;
 
+import com.github.illarion.swap4j.Baz;
 import com.github.illarion.swap4j.store.StoreException;
+import com.github.illarion.swap4j.swap.ProxyList;
+import org.hamcrest.MatcherAssert;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -8,8 +11,11 @@ import java.util.List;
 import java.util.UUID;
 
 import static com.github.illarion.swap4j.CustomAssertions.assertStorageContains;
+import static com.github.illarion.swap4j.CustomAssertions.isEmpty;
 import static com.github.illarion.swap4j.CustomAssertions.obj;
 import static junit.framework.Assert.assertEquals;
+import static org.hamcrest.CoreMatchers.nullValue;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
@@ -83,5 +89,26 @@ public class MapWriterTest {
         assertEquals(new FieldRecordBuilder(1, "./field/subfield").setValue("string11").setClazz(String.class).setRecordType(RECORD_TYPE.PROXIED_FIELD).create(), fieldsRead.get(2));
     }
 
+    @Test
+    public void testReadElementRecordsEmpty() {
+        fieldStorage.serialize(new FieldRecordBuilder(0, ".[").setValue("ignored").setClazz(ProxyList.class)
+                .setElementClass(Baz.class).setRecordType(RECORD_TYPE.PROXY_LIST).create()); // only "head" of list
+
+        List<FieldRecord> elementRecords = fieldStorage.readElementRecords(new UUID(0,0), Baz.class);
+        MatcherAssert.assertThat(elementRecords, isEmpty());
+    }
+
+    @Test
+    public void testReadAllDoesnotReadNulls() {
+        UUID absentUuid = new UUID(0, 666);
+        List<FieldRecord> read = fieldStorage.readAll(absentUuid);
+        assertThat(read, isEmpty());
+    }
+
+    @Test(expected = StoreException.class)
+    public void testReadDoesnotReadNulls() throws StoreException {
+        UUID absentUuid = new UUID(0, 666);
+        FieldRecord read = fieldStorage.read(new Locator(absentUuid, "."));
+    }
 
 }

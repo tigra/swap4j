@@ -15,6 +15,11 @@ import java.util.UUID;
 
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.junit.Assert.assertThat;
+import static org.junit.Assert.fail;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
+import static org.powermock.api.mockito.PowerMockito.when;
 
 /**
  * TODO Describe class
@@ -43,12 +48,24 @@ public class ProxyMockTest {
 
     @Test
     public void testToStringDoesntTouchRealObject() throws StoreException {
-        expect(uuidGenerator.createUUID()).thenReturn(new UUID(0,0));
-        final AbstractSimpleTest.Bar realObject = mock(AbstractSimpleTest.Bar.class);
-        final AbstractSimpleTest.Bar wrapped = Swap.doWrap(realObject, AbstractSimpleTest.Bar.class);
+        when(uuidGenerator.createUUID()).thenReturn(new UUID(0,0));
+//        final Object realObject = mock(Object.class);
+//        when(realObject.toString()).thenReturn("(RealObject)").thenThrow(new AssertionError("toString() of real object haven't be called"));
+        final Object realObject = new Object() {
+            public boolean firstInvocation = true;
+            @Override
+            public String toString() {
+                if (firstInvocation) {
+                    firstInvocation = false;
+                    return "you can call toString during wrapping";
+                } else {
+                    throw new AssertionError("toString() of real object haven't be called");
+                }
+            }
+        };
+        final Object wrapped = Swap.doWrap(realObject, Object.class);
 
-
-        assertThat(wrapped.toString(), equalTo("E{Proxy{id=0-0, c=Bar}}"));
-        verify(realObject, never()).toString();
+        assertThat(wrapped.toString(), equalTo("E{Proxy{id=0-0, c=Object}}"));
+//        verify(realObject, never()).toString();
     }
 }

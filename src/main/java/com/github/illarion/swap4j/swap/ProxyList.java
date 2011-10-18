@@ -66,7 +66,7 @@ public class ProxyList<T> extends Swappable<T> implements List<T> {
         this.objectStore = swap.getStore();
         this.id = objectStore.createUUID();
         this.elementCount = 0;
-        unload();
+        unload();  // there is nothing in the list
         Swap.register(this);
         exit();
     }
@@ -76,7 +76,7 @@ public class ProxyList<T> extends Swappable<T> implements List<T> {
     }
 
     public ProxyList(Swap swap, Class<T> elementClass, UUID uuid, boolean doUnload) throws StoreException {
-        enter("constructor ProxyList(swap=%s, elementClass=%s, uuid=%s, doUnload=%s)", swap, uuid, doUnload);
+        enter("constructor ProxyList(swap=%s, elementClass=%s, uuid=%s, doUnload=%s)", swap, elementClass, uuid, doUnload);
         this.elementClass = elementClass;
         this.id = uuid;
         this.swap = swap;
@@ -101,11 +101,11 @@ public class ProxyList<T> extends Swappable<T> implements List<T> {
                 objectStore.reStoreList(id, elementClass, newList);
                 log.debug("Old list: {}", list);
                 log.debug("New list: {}", newList);
-                if (list.size() != newList.size()) {
+                if (null == list || list.size() != newList.size()) {
                     log.info("list changed!");
                 }
-                if (null != newList && newList.size() > 0) {
-                    list = newList; // TODO remove this dirty hack
+                if (null == list || null != newList && newList.size() > 0) { // TODO remove this dirty hack - change always
+                    list = newList;
                 }
                 loaded = true;
                 elementCount = list.size();
@@ -134,7 +134,8 @@ public class ProxyList<T> extends Swappable<T> implements List<T> {
     }
 
     private String listInfo() {
-        return String.format("ProxyList<%s>(%s, size=%d)", shortElementClassName(), ID.shortRepresentation(id), list.size());
+        return String.format("ProxyList<%s>(%s, size=%d)", shortElementClassName(), ID.shortRepresentation(id),
+                null == list ? -1 : list.size());
     }
 
     private String shortElementClassName() {
@@ -151,6 +152,7 @@ public class ProxyList<T> extends Swappable<T> implements List<T> {
             log.debug("adding {}", wrapped);
             log.debug("New list: {}", list);
             boolean result = list.add(wrapped);
+            elementCount++;
             return result;
         } catch (StoreException ex) {
             log.error("Error adding " + e + " to ProxyList with id=" + id, ex);
@@ -340,18 +342,25 @@ public class ProxyList<T> extends Swappable<T> implements List<T> {
     @SuppressWarnings({"RedundantIfStatement"})
     @Override
     public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
+        enter("%s.equals(%s)", this, o);
+        try {
+            tryToLoad();
+            if (this == o) return true;
+            if (o == null || getClass() != o.getClass()) return false;
 
-        ProxyList proxyList = (ProxyList) o;
+            ProxyList proxyList = (ProxyList) o;
+            proxyList.tryToLoad();
 
-        if (elementClass != null ? !elementClass.equals(proxyList.elementClass) : proxyList.elementClass != null)
-            return false;
-        if (id != null ? !id.equals(proxyList.id) : proxyList.id != null) return false;
-        if (listsEqual(proxyList)) return false;
-        if (swap != null ? !swap.equals(proxyList.swap) : proxyList.swap != null) return false;
+            if (elementClass != null ? !elementClass.equals(proxyList.elementClass) : proxyList.elementClass != null)
+                return false;
+            if (swap != null ? !swap.equals(proxyList.swap) : proxyList.swap != null) return false;
+//        if (id != null ? !id.equals(proxyList.id) : proxyList.id != null) return false;
+            if (!listsEqual(proxyList)) return false;
 
-        return true;
+            return true;
+        } finally {
+            exit();
+        }
     }
 
     private boolean listsEqual(ProxyList proxyList) {

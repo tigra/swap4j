@@ -6,6 +6,9 @@ import org.hamcrest.BaseMatcher;
 import org.hamcrest.Description;
 import org.hamcrest.Matcher;
 import org.hamcrest.StringDescription;
+import org.junit.internal.matchers.TypeSafeMatcher;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.HashSet;
 import java.util.List;
@@ -28,6 +31,8 @@ import static org.junit.Assert.assertThat;
  * @author Alexey Tigarev
  */
 public class CustomAssertions {
+    private static Logger log = LoggerFactory.getLogger("CustomAssertions");
+
     public static void assertGreaterOrEqual(int a, int b) {
         assertTrue(a >= b);
     }
@@ -40,8 +45,9 @@ public class CustomAssertions {
         return new BaseMatcher<Integer>() {
             @Override
             public boolean matches(Object item) {
-                return (Integer)item >= number;
+                return (Integer) item >= number;
             }
+
             @Override
             public void describeTo(Description description) {
                 description.appendText(">=").appendValue(number);
@@ -51,9 +57,11 @@ public class CustomAssertions {
 
     /**
      * Verifies that store contains ONLY of specified FieldRecord instances
+     *
      * @param fieldStorage
      * @param expected
      * @throws com.github.illarion.swap4j.store.StoreException
+     *
      */
     @Deprecated
     public static void assertStorageContains(FieldStorage fieldStorage, FieldRecord... expected) throws StoreException {
@@ -122,41 +130,72 @@ public class CustomAssertions {
         return valueIs(uuid.toString());
     }
 
-    public static <T> Matcher<List<T>> containsOneElement() {
-        return new BaseMatcher<List<T>>() {
+    public static <T> Matcher<? super Object> containsOneElement() {
+        return new TypeSafeMatcher<Object>() {
             @Override
-            public boolean matches(Object item) {
-                List<T> list = (List<T>) item;
-                return null != list && list.size() == 1;
+            public boolean matchesSafely(Object item) {
+                if (item instanceof List) {
+                    List<T> list = (List<T>) item;
+                    return null != list && list.size() == 1;
+                } else {
+                    return false;
+                }
             }
+
             @Override
             public void describeTo(Description description) {
-                description.appendText("list containing any single element");
+                description.appendText("list containing one and only one element");
             }
+
+            @Override
+            public void describeMismatch(Object item, Description description) {
+                describeListContents((List<T>) item, description);
+            }
+
         };
     }
 
+    public static <T> void describeListContents(List<T> list, Description description) {
+        description.appendText("list contains ").appendValue(list.size()).appendText(" elements: [");
+        for (T element : list) {
+            description.appendValue(element).appendText(",");
+        }
+        description.appendText("]");
+    }
 
-    public static <T> Matcher<List<T>> containsOneElement(final T expectedElement) {
-        return new BaseMatcher<List<T>>() {
+    public static <T> Matcher<? super Object> containsOneElement(final T expectedElement) {
+        return new TypeSafeMatcher<Object>() {
             @Override
-            public boolean matches(Object item) {
+            public boolean matchesSafely(Object item) {
                 List<T> list = (List<T>) item;
                 return null != list && list.size() == 1 && list.contains(expectedElement);
             }
+
             @Override
             public void describeTo(Description description) {
-                description.appendText("list containing single element:").appendValue(expectedElement);
+                description.appendText("list containing one and only one element: ").appendValue(expectedElement);
+            }
+
+            @Override
+            public void describeMismatch(Object item, Description description) {
+                describeListContents((List<T>) item, description);
             }
         };
     }
 
     public static <T> Matcher<List<? extends T>> isEmpty() {
-        return new BaseMatcher<List<? extends T>>() {
+        return new TypeSafeMatcher<List<? extends T>>() {
             @Override
-            public boolean matches(Object item) {
-                return item instanceof List && ((List<T>)item).isEmpty();
+            public boolean matchesSafely(List<? extends T> item) {
+                return ((List<T>) item).isEmpty();
             }
+
+            @Override
+            public void describeMismatch(Object item, Description description) {
+                description.appendText("list is non empty: ");
+                describeListContents((List<T>)item, description);
+            }
+
             @Override
             public void describeTo(Description description) {
                 description.appendText("empty list");
@@ -171,7 +210,7 @@ public class CustomAssertions {
                 if (!(item instanceof List)) {
                     return false;
                 }
-                List list = (List)item;
+                List list = (List) item;
                 if (expected.length != list.size()) {
                     return false;
                 }
@@ -231,9 +270,11 @@ public class CustomAssertions {
 
     /**
      * Verifies that store contains ONLY of specified FieldRecord instances
+     *
      * @param fieldStorage
      * @param expected
      * @throws com.github.illarion.swap4j.store.StoreException
+     *
      */
     public static void assertStorageContains(FieldStorage fieldStorage, PositionalMatcher<FieldRecord>... expected) throws StoreException {
         Set<Locator> seenLocators = new HashSet<Locator>();
@@ -257,7 +298,7 @@ public class CustomAssertions {
 //        assertEquals("Extra expected found in storage", expected.length, seenLocators.size());
         String extraRecords = dumpStoreContents(fieldStorage, seenLocators, "Extra FieldRecords");
         assertEquals("Extra records found in storage - " + extraRecords + "\n"
-                + expectedRecords + actualRecords 
+                + expectedRecords + actualRecords
                 , expected.length, fieldStorage.getRecordCount());
     }
 
@@ -289,6 +330,7 @@ public class CustomAssertions {
                 }
                 return true;
             }
+
             @Override
             public void describeTo(Description description) {
                 description.appendText("conjunction of matchers:");
@@ -350,9 +392,18 @@ public class CustomAssertions {
 
     private static String dumpStoreContents(FieldStorage fieldStorage, Set<Locator> except, String title) {
         StringBuilder builder = new StringBuilder(title).append(": [\n");
-        for (Locator locator: fieldStorage) {
+        for (Locator locator : fieldStorage) {
             if (!except.contains(locator)) {
-                builder.append(locator).append(" => ").append(fieldStorage.read(locator)).append("\n");
+                FieldRecord record = null;
+                String entry;
+                try {
+                    record = fieldStorage.read(locator);
+                    entry = record.toString();
+                } catch (StoreException e) {
+                    log.error("", e);
+                    entry = e.getMessage();
+                }
+                builder.append(locator).append(" => ").append(record).append("\n");
             }
         }
         return builder.append("]").toString();

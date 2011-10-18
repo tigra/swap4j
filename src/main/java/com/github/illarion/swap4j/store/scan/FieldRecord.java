@@ -204,4 +204,8 @@ public class FieldRecord<T> implements Comparable<FieldRecord<T>> {
     UUID getValueAsUuid() {
         return UUID.fromString((String) getValue());
     }
+
+    public void setValue(T value) {
+        this.value = value;
+    }
 }

@@ -1,5 +1,6 @@
 package com.github.illarion.swap4j.store.scan;
 
+import com.github.illarion.swap4j.store.StoreException;
 import com.github.illarion.swap4j.swap.Swap;
 import com.github.illarion.swap4j.swap.UUIDGenerator;
 
@@ -30,7 +31,7 @@ public class TestObjectScannerObjectStorage extends ObjectFieldStorage {
     }
 
     @Override
-    public FieldRecord getSerializedField(Locator locator) {
+    public FieldRecord getSerializedField(Locator locator) throws StoreException {
         return fieldStorage.read(locator);
     }
 

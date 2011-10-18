@@ -1,5 +1,9 @@
 package com.github.illarion.swap4j.store.scan;
 
+import com.github.illarion.swap4j.swap.ProxyList;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.util.List;
 
 /**
@@ -8,7 +12,8 @@ import java.util.List;
  * @author Alexey Tigarev tigra@agile-algorithms.com
  */
 public class ListElementAccessor implements FieldAccessor {
-//    private List list;
+    private Logger log = LoggerFactory.getLogger("ListElementAccessor");
+
     private int position;
     private Class elementClass;
 
@@ -19,7 +24,13 @@ public class ListElementAccessor implements FieldAccessor {
 
     @Override
     public void set(Object destination, Object value) {
-        ((List)destination).add(position, value); // TODO take position into account?
+        log.debug("ListElementAccessor.set(destination={}, value={})", destination, value);
+        List list = (List) destination;
+        if (list instanceof ProxyList) {
+            log.error("Trying to write directly into ProxyList");
+            throw new IllegalArgumentException("Trying to write directly into ProxyList");
+        }
+        list.add(position, value); // TODO take position into account?
     }
 
     @Override
