@@ -5,7 +5,7 @@
 package com.github.illarion.swap4j.swap;
 
 import com.github.illarion.swap4j.store.ObjectStorage;
-import com.github.illarion.swap4j.store.StoreException;
+import com.github.illarion.swap4j.store.StorageException;
 
 import java.util.UUID;
 
@@ -30,7 +30,7 @@ public class Proxy<T> extends Swappable<T> implements Locatable<T> {
     transient final Callback callback = new SwapCallback(this);
     private transient int depth = 0;
 
-    public Proxy(UUID id, ObjectStorage objectStore, Class<T> clazz) throws StoreException {
+    public Proxy(UUID id, ObjectStorage objectStore, Class<T> clazz) throws StorageException {
         checkIfClassIsAllowed(clazz);
         this.id = id;
         this.objectStore = objectStore;
@@ -39,7 +39,11 @@ public class Proxy<T> extends Swappable<T> implements Locatable<T> {
         Swap.register(this);
     }
 
-    public Proxy(ObjectStorage objectStore, T realObject, Class<T> clazz) throws StoreException {
+    public Proxy(ObjectStorage objectStore, T realObject, Class<T> clazz) throws StorageException {
+        this(objectStore, realObject, clazz, true);
+    }
+
+    public Proxy(ObjectStorage objectStore, T realObject, Class<T> clazz, boolean haveToUnload) throws StorageException {
         checkIfClassIsAllowed(clazz);
         checkObjectIsAllowed(realObject);
         this.id = objectStore.createUUID();
@@ -47,36 +51,46 @@ public class Proxy<T> extends Swappable<T> implements Locatable<T> {
         this.realObject = realObject;
         this.clazz = clazz;
         Swap.register(this);
-        unload();
-    }
-
-    private void checkIfClassIsAllowed(Class<T> clazz) throws StoreException {
-        if (Proxy.class.isAssignableFrom(clazz)) {
-            throw new StoreException("Proxy inside Proxy is not allowed");
+        if (haveToUnload) {
+            unload();
         }
     }
 
-    private void checkObjectIsAllowed(T object) throws StoreException {
+    private void checkIfClassIsAllowed(Class<T> clazz) throws StorageException {
+        if (Proxy.class.isAssignableFrom(clazz)) {
+            throw new StorageException("Proxy inside Proxy is not allowed");
+        }
+    }
+
+    private void checkObjectIsAllowed(T object) throws StorageException {
         if (null != object && Proxy.class.isAssignableFrom(object.getClass())) {
-            throw new StoreException("Proxy inside Proxy is not allowed");
+            throw new StorageException("Proxy inside Proxy is not allowed");
         }
     }
 
 
     @Override
-    public void unload() throws StoreException {
+    public void unload() throws StorageException {
         synchronized (id) {
             enter("unload");
             log.debug("unload(), " + this);
-//            store.store(id, realObject);
-            objectStore.store(id, this);
+            store();
             realObject = null;
             exit();
         }
     }
 
+    public void store() throws StorageException {
+        enter("store");
+        try {
+            objectStore.store(id, this);
+        } finally {
+            exit();
+        }
+    }
+
     @Override
-    public void load() throws StoreException {
+    public void load() throws StorageException {
         synchronized (id) {
             enter("load");
             if (null == realObject) {
@@ -89,7 +103,7 @@ public class Proxy<T> extends Swappable<T> implements Locatable<T> {
         }
     }
 
-    public T get() throws StoreException {
+    public T get() throws StorageException {
         synchronized (id) {
             enter("get");
             if (null == realObject) {
@@ -106,7 +120,7 @@ public class Proxy<T> extends Swappable<T> implements Locatable<T> {
                 T enhanced = (T) enhancer.create();
                 return enhanced;
             } catch (ClassCastException cce) {
-                throw new StoreException("Proxy.get(), id=" + id + ",clazz=" + clazz, cce);
+                throw new StorageException("Proxy.get(), id=" + id + ",clazz=" + clazz, cce);
             } finally {
                 exit();
             }

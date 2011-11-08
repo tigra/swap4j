@@ -1,8 +1,7 @@
 package com.github.illarion.swap4j.swap;
 
-import com.github.illarion.swap4j.store.StoreException;
+import com.github.illarion.swap4j.store.StorageException;
 import com.github.illarion.swap4j.store.scan.ID;
-import de.huxhorn.lilith.logback.classic.NDC;
 import org.slf4j.MDC;
 
 import java.util.UUID;
@@ -22,13 +21,13 @@ public abstract class Swappable<T> extends ContextTracking implements Locatable<
     }
 
     @Override
-    public abstract void load() throws StoreException;
+    public abstract void load() throws StorageException;
 
     @Override
     public abstract boolean isLoaded();
 
     @Override
-    public abstract void unload() throws StoreException;
+    public abstract void unload() throws StorageException;
 
     @Override
     protected String getContextInfo(String context) {

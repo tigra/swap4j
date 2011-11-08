@@ -1,6 +1,6 @@
 package com.github.illarion.swap4j;
 
-import com.github.illarion.swap4j.store.StoreException;
+import com.github.illarion.swap4j.store.StorageException;
 import com.github.illarion.swap4j.swap.Swap;
 import de.huxhorn.lilith.logback.classic.NDC;
 import org.slf4j.Logger;
@@ -20,7 +20,7 @@ public class Baz {
     private final static Logger log = LoggerFactory.getLogger("Baz");
 //    private transient Swap swap = null;
 
-    public Baz(String value) throws StoreException {
+    public Baz(String value) throws StorageException {
         this.value = value;
         children = Swap.getInstance().newWrapList(Baz.class);
 //        this.swap = swap;
@@ -30,7 +30,7 @@ public class Baz {
 
     }
 
-    public void add(Baz elem) throws StoreException {
+    public void add(Baz elem) throws StorageException {
         if (null == children) {
             children = Swap.getInstance().newWrapList(Baz.class);
         }

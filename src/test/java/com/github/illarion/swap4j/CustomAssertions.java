@@ -1,6 +1,6 @@
 package com.github.illarion.swap4j;
 
-import com.github.illarion.swap4j.store.StoreException;
+import com.github.illarion.swap4j.store.StorageException;
 import com.github.illarion.swap4j.store.scan.*;
 import org.hamcrest.BaseMatcher;
 import org.hamcrest.Description;
@@ -10,10 +10,14 @@ import org.junit.internal.matchers.TypeSafeMatcher;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.lang.reflect.Field;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.Callable;
 
 import static junit.framework.Assert.assertEquals;
 import static junit.framework.Assert.assertTrue;
@@ -60,11 +64,11 @@ public class CustomAssertions {
      *
      * @param fieldStorage
      * @param expected
-     * @throws com.github.illarion.swap4j.store.StoreException
+     * @throws com.github.illarion.swap4j.store.StorageException
      *
      */
     @Deprecated
-    public static void assertStorageContains(FieldStorage fieldStorage, FieldRecord... expected) throws StoreException {
+    public static void assertStorageContains(FieldStorage fieldStorage, FieldRecord... expected) throws StorageException {
         Set<Locator> locators = new HashSet<Locator>();
         for (FieldRecord fieldRecord : expected) {
             final Locator locator = fieldRecord.getLocator();
@@ -235,6 +239,201 @@ public class CustomAssertions {
         };
     }
 
+    public static Matcher<? super FieldRecord> locatedAt(final int uuid, final String path) {
+        return new TypeSafeMatcher<FieldRecord>() {
+            @Override
+            public boolean matchesSafely(FieldRecord item) {
+                if (null == item) {
+                    return false;
+                }
+                Locator locator = item.getLocator();
+                if (null == locator) {
+                    return false;
+                }
+                return uuid == locator.getIdLong() && equalTo(path).matches(locator.getPath());
+            }
+            @Override
+            public void describeTo(Description description) {
+                description.appendText("at(").appendValue(uuid).appendText(", ").appendValue(path).appendText(")");
+            }
+        };
+    }
+
+
+    static class MethodCallResult<T> {
+        T returnValue;
+        Throwable thrown;
+
+        MethodCallResult(T returnValue, Throwable thrown) {
+            this.returnValue = returnValue;
+            this.thrown = thrown;
+        }
+
+        MethodCallResult(Throwable thrown) {
+            this.returnValue = null;
+            this.thrown = thrown;
+        }
+
+        MethodCallResult(T returnValue) {
+            this.returnValue = returnValue;
+            this.thrown = null;
+        }
+
+        public T getReturnValue() {
+            return returnValue;
+        }
+
+        public Throwable getThrown() {
+            return thrown;
+        }
+
+        public boolean isExceptionThrown() {
+            return null != thrown;
+        }
+    }
+
+    
+    public static <O, T> Matcher<O> getterValue(final String fieldName, final Matcher<T> subMatcher) {
+        return new TypeSafeMatcher<O>() {
+            @Override
+            public boolean matchesSafely(O item) {
+                if (null == item) {
+                    return false;
+                }
+                Method getter = getGetter(item, fieldName);
+                if (null == getter) {
+                    return false;
+                }
+                MethodCallResult<T> result = callGetter(item, getter);
+                if (result.isExceptionThrown()) {
+                    return false;
+                }
+                return subMatcher.matches(result.getReturnValue());
+            }
+
+            private MethodCallResult<T> callGetter(O item, Method getter) {
+                try {
+                    Object result = getter.invoke(item);
+                    return new MethodCallResult<T>((T)result);
+                } catch (IllegalAccessException e) {
+                    return new MethodCallResult<T>(e);
+                } catch (InvocationTargetException e) {
+                    return new MethodCallResult<T>(e);
+                } catch (ClassCastException e) {
+                    return new MethodCallResult<T>(e);
+                }
+            }
+
+            private <O> Method getGetter(O item, String fieldName) {
+                String methodName = "get" + fieldName.substring(0, 1).toUpperCase() + fieldName.substring(1);
+                try {
+                    return item.getClass().getMethod(methodName);
+                } catch (NoSuchMethodException e) {
+                    return null;
+                }
+            }
+
+            @Override
+            public void describeTo(Description description) {
+                description.appendText("object whose field ").appendValue(fieldName).appendText(" accessed using getter returns ");
+                description.appendDescriptionOf(subMatcher);
+            }
+
+            @Override
+            public void describeMismatch(Object item, Description description) {
+                if (null == item) {
+                    description.appendText("was null");
+                } else {
+                    description.appendText("was ").appendValue(item);
+                    Method getter = getGetter(item, fieldName);
+                    if (null == getter) {
+                        description.appendText(" getter not found");
+                    } else {
+                        MethodCallResult result = callGetter((O)item, getter);
+                        if (result.isExceptionThrown()) {
+                            description.appendValue(" exception thrown calling getter: ").appendValue(result.getThrown());
+                        } else {
+                            description.appendDescriptionOf(subMatcher);
+                        }
+                    }
+                }
+
+            }
+        };
+    }
+
+    public static <O, T> Matcher<O> fieldValue(final String fieldName, final Matcher<T> subMatcher) {
+        return new TypeSafeMatcher<O>() { // TODO refactor, don't call too much times
+            @Override
+            public boolean matchesSafely(O item) {
+                if (null == item) {
+                    return false;
+                }
+                Field field = getField(item, fieldName);
+                if (field == null) {
+                    return false;
+                }
+                if (null != getValueException(item, fieldName)) {
+                    return false;
+                }
+                return subMatcher.matches(getValue(item, field));
+            }
+
+            private <O> Exception getValueException(O item, String fieldName) {
+                try {
+                    getField(item, fieldName).get(item);
+                    return null;
+                } catch (IllegalAccessException iae) {
+                    return iae;
+                }
+            }
+
+            private Object getValue(Object item, Field field) {
+                Object value = null;
+                try {
+                    value = field.get(item);
+                } catch (IllegalAccessException e) {
+                    System.err.println("Unexpected error (should already had checked for this): " + e);
+                    e.printStackTrace();
+                }
+                return value;
+            }
+
+
+            @Override
+            public void describeTo(Description description) {
+                description.appendText("object with field ").appendValue(fieldName).appendText(" matching: ")
+                        .appendDescriptionOf(subMatcher);
+            }
+
+            @Override
+            public void describeMismatch(Object item, Description description) {
+                if (null == item) {
+                    description.appendText("was null");
+                } else {
+                    description.appendText("was ").appendValue(item);
+                    if (null == getField(item, fieldName)) {
+                        description.appendText(" field '").appendValue(fieldName).appendText("' was not found");
+                    } else if (null != getValueException(item, fieldName)) {
+                        description.appendText("exception thrown accessing field: ").appendValue(getValueException(item, fieldName));
+                    } else {
+                        subMatcher.describeMismatch(item, description);
+                    }
+                }
+            }
+
+            private Field getField(Object item, String fieldName) {
+                Field field;
+                try {
+                    field = item.getClass().getField(fieldName);
+                } catch (NoSuchFieldException e) {
+                    field = null;
+                }
+                return field;
+            }
+        };
+    }
+
     public static class PositionalMatcher<T> extends BaseMatcher<T> {
         Locator locator;
         Matcher<T> subMatcher;
@@ -273,10 +472,10 @@ public class CustomAssertions {
      *
      * @param fieldStorage
      * @param expected
-     * @throws com.github.illarion.swap4j.store.StoreException
+     * @throws com.github.illarion.swap4j.store.StorageException
      *
      */
-    public static void assertStorageContains(FieldStorage fieldStorage, PositionalMatcher<FieldRecord>... expected) throws StoreException {
+    public static void assertStorageContains(FieldStorage fieldStorage, PositionalMatcher<FieldRecord>... expected) throws StorageException {
         Set<Locator> seenLocators = new HashSet<Locator>();
         String expectedRecords = "Expected records:\n" + dumpExpectedRecords(expected);
         String actualRecords = dumpStoreContents(fieldStorage, "Actual FieldRecords");
@@ -398,8 +597,8 @@ public class CustomAssertions {
                 String entry;
                 try {
                     record = fieldStorage.read(locator);
-                    entry = record.toString();
-                } catch (StoreException e) {
+                    entry = null == record ? "null" : record.toString();
+                } catch (StorageException e) {
                     log.error("", e);
                     entry = e.getMessage();
                 }

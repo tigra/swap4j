@@ -1,6 +1,6 @@
 package com.github.illarion.swap4j.store.scan;
 
-import com.github.illarion.swap4j.store.StoreException;
+import com.github.illarion.swap4j.store.StorageException;
 import com.github.illarion.swap4j.swap.Swap;
 
 import java.util.UUID;
@@ -79,6 +79,7 @@ public class FieldRecord<T> implements Comparable<FieldRecord<T>> {
 
     @Override
     public String toString() {
+//        throw new IllegalArgumentException("zzzz");
         final StringBuilder sb = new StringBuilder();
         sb.append("FR{");
         sb.append("@").append(locator);
@@ -109,16 +110,9 @@ public class FieldRecord<T> implements Comparable<FieldRecord<T>> {
         if (recordType != that.recordType) return false;
         if (clazz != null ? !clazz.equals(that.clazz) : that.clazz != null) return false;
         if (locator != null ? !locator.equals(that.locator) : that.locator != null) return false;
-        if (value != null ? !valuesEqual(that) : that.value != null) return false;
+        if (value != null ? !value.equals(that.value) : that.value != null) return false;
 
         return true;
-    }
-
-    private boolean valuesEqual(FieldRecord that) {
-//        if (this.value instanceof AnyObject || that.value instanceof AnyObject) {
-//            return true; // TODO remove this dirty hack, use e.g. hamcrest matchers instead
-//        }
-        return value.equals(that.value);
     }
 
     @Override
@@ -153,7 +147,7 @@ public class FieldRecord<T> implements Comparable<FieldRecord<T>> {
      * @throws NoSuchFieldException
      * @throws IllegalAccessException
      */
-    public Object writeTo(Object object) throws NoSuchFieldException, IllegalAccessException, StoreException {
+    public Object writeTo(Object object) throws NoSuchFieldException, IllegalAccessException, StorageException {
         if (locator.isRoot()) {
             return null; // can't set object itself, ignoring
         }
@@ -207,5 +201,17 @@ public class FieldRecord<T> implements Comparable<FieldRecord<T>> {
 
     public void setValue(T value) {
         this.value = value;
+    }
+
+    boolean isProxiedField() {
+        return getRecordType() == RECORD_TYPE.PROXIED_FIELD;
+    }
+
+    public boolean isCompoundField() {
+        return recordType == RECORD_TYPE.COMPOUND_FIELD;
+    }
+
+    public long getIdLong() {
+        return locator.getIdLong();
     }
 }

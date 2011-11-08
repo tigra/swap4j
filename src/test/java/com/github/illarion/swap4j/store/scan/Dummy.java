@@ -8,10 +8,10 @@ package com.github.illarion.swap4j.store.scan;
 class Dummy {
     String field = null;
 
-    Dummy() {
+    public Dummy() {
     }
 
-    Dummy(String field) {
+    public Dummy(String field) {
         this.field = field;
     }
 

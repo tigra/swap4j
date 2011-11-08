@@ -1,6 +1,6 @@
 package com.github.illarion.swap4j.store.scan;
 
-import com.github.illarion.swap4j.store.StoreException;
+import com.github.illarion.swap4j.store.StorageException;
 import com.github.illarion.swap4j.swap.Swap;
 import com.github.illarion.swap4j.swap.UUIDGenerator;
 import org.slf4j.Logger;
@@ -34,6 +34,8 @@ public class H2FieldStorage implements FieldStorage, UUIDGenerator {
     private int currentUuid = 0;
     
     private final static Logger log = LoggerFactory.getLogger("H2FieldStorage");
+//    private static final String H2_URL = "jdbc:h2:tcp://localhost/~/test";
+    private static final String H2_URL = "jdbc:h2:~/test";
 
     public H2FieldStorage() throws ClassNotFoundException, SQLException {
         this(null);
@@ -41,7 +43,7 @@ public class H2FieldStorage implements FieldStorage, UUIDGenerator {
 
     public H2FieldStorage(Swap swap) throws ClassNotFoundException, SQLException {
         Class.forName("org.h2.Driver");
-        connection = DriverManager.getConnection("jdbc:h2:tcp://localhost/~/test");
+        connection = DriverManager.getConnection(H2_URL);
         initDatabase();
         this.swap = swap;
     }
@@ -199,7 +201,7 @@ public class H2FieldStorage implements FieldStorage, UUIDGenerator {
 //                    + " and path='" + locator.getPath() + "'");
             if (!rs.next()) {
                 return null;
-//                throw new StoreException("Not found");
+//                throw new StorageException("Not found");
             }
             return readSerializedFieldFromResultSet(rs);
 //            return rsToSF(locator, rs);
@@ -221,7 +223,7 @@ public class H2FieldStorage implements FieldStorage, UUIDGenerator {
         } catch (InvocationTargetException e) {
             log.error("Error reading FieldRecord", e);
             return null; // TODO own exception
-        } catch (StoreException e) {
+        } catch (StorageException e) {
             log.error("Error reading FieldRecord", e);
             return null; // TODO own exception
         }
@@ -261,20 +263,20 @@ public class H2FieldStorage implements FieldStorage, UUIDGenerator {
         } catch (InvocationTargetException e) {
             log.error("Error reading list of FieldRecord's", e);
             return null; // TODO own exception
-        } catch (StoreException e) {
+        } catch (StorageException e) {
             log.error("Error reading list of FieldRecord's", e);
             return null; // TODO own exception
         }
     }
 
-    private List<FieldRecord> readFieldRecordsSelectedByQuery(String query) throws SQLException, ClassNotFoundException, InvocationTargetException, NoSuchMethodException, InstantiationException, IllegalAccessException, StoreException {
+    private List<FieldRecord> readFieldRecordsSelectedByQuery(String query) throws SQLException, ClassNotFoundException, InvocationTargetException, NoSuchMethodException, InstantiationException, IllegalAccessException, StorageException {
         Statement statement = createStatement();
         ResultSet rs = statement.executeQuery(query);
         List<FieldRecord> fieldRecords = readFieldRecordsFromResultSet(rs);
         return fieldRecords;
     }
 
-    private List<FieldRecord> readFieldRecordsFromResultSet(ResultSet rs) throws SQLException, ClassNotFoundException, InvocationTargetException, NoSuchMethodException, InstantiationException, IllegalAccessException, StoreException {
+    private List<FieldRecord> readFieldRecordsFromResultSet(ResultSet rs) throws SQLException, ClassNotFoundException, InvocationTargetException, NoSuchMethodException, InstantiationException, IllegalAccessException, StorageException {
         List<FieldRecord> fieldRecords = new ArrayList<FieldRecord>();
         while (rs.next()) {
             if (!rs.isAfterLast()) {
@@ -289,7 +291,7 @@ public class H2FieldStorage implements FieldStorage, UUIDGenerator {
         return null == className ? null : Class.forName(className);
     }
 
-    private FieldRecord readSerializedFieldFromResultSet(ResultSet rs) throws SQLException, ClassNotFoundException, InvocationTargetException, NoSuchMethodException, InstantiationException, IllegalAccessException, StoreException {
+    private FieldRecord readSerializedFieldFromResultSet(ResultSet rs) throws SQLException, ClassNotFoundException, InvocationTargetException, NoSuchMethodException, InstantiationException, IllegalAccessException, StorageException {
         UUID uuid = UUID.fromString(rs.getString("id"));
         FieldRecordBuilder builder = new FieldRecordBuilder(uuid, rs.getString("path"));
         Class<?> clazz = getClassFromResultSet(rs, "class");
@@ -405,7 +407,7 @@ public class H2FieldStorage implements FieldStorage, UUIDGenerator {
         } catch (IllegalAccessException e) {
             log.error("Error reading list element records", e);
             return null;
-        } catch (StoreException e) {
+        } catch (StorageException e) {
             log.error("Error reading list element records", e);
             return null;
         }

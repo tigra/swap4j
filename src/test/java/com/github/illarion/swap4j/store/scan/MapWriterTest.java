@@ -1,7 +1,7 @@
 package com.github.illarion.swap4j.store.scan;
 
 import com.github.illarion.swap4j.Baz;
-import com.github.illarion.swap4j.store.StoreException;
+import com.github.illarion.swap4j.store.StorageException;
 import com.github.illarion.swap4j.swap.ProxyList;
 import org.hamcrest.MatcherAssert;
 import org.junit.Before;
@@ -36,7 +36,7 @@ public class MapWriterTest {
     }
 
     @Test
-    public void testClean() throws StoreException {
+    public void testClean() throws StorageException {
         // setup
         fieldStorage.serialize(new FieldRecordBuilder(1, ".").setValue("object1").setClazz(String.class).setRecordType(RECORD_TYPE.PROXIED_VALUE).create());
         fieldStorage.serialize(new FieldRecordBuilder(1, "./field").setValue("string1").setClazz(String.class).setRecordType(RECORD_TYPE.PROXIED_FIELD).create());
@@ -54,7 +54,7 @@ public class MapWriterTest {
     }
 
     @Test
-    public void testCleanNothing() throws StoreException {
+    public void testCleanNothing() throws StorageException {
         // setup
         fieldStorage.serialize(new FieldRecordBuilder(2, ".").setValue("singleObject").setClazz(String.class).setRecordType(RECORD_TYPE.PROXIED_VALUE).create());
         fieldStorage.serialize(new FieldRecordBuilder(2, "./field").setValue("stringInSingleObject").setClazz(String.class).setRecordType(RECORD_TYPE.PROXIED_FIELD).create());
@@ -105,8 +105,8 @@ public class MapWriterTest {
         assertThat(read, isEmpty());
     }
 
-    @Test(expected = StoreException.class)
-    public void testReadDoesnotReadNulls() throws StoreException {
+    @Test(expected = StorageException.class)
+    public void testReadDoesnotReadNulls() throws StorageException {
         UUID absentUuid = new UUID(0, 666);
         FieldRecord read = fieldStorage.read(new Locator(absentUuid, "."));
     }

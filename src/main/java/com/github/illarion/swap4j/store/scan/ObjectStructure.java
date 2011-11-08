@@ -1,6 +1,6 @@
 package com.github.illarion.swap4j.store.scan;
 
-import com.github.illarion.swap4j.store.StoreException;
+import com.github.illarion.swap4j.store.StorageException;
 import com.github.illarion.swap4j.swap.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -27,13 +27,14 @@ public class ObjectStructure extends ContextTracking {
 //        swap = fieldRecord.swap;
     }
 
-    Object writeTo(Object object, FieldRecord fieldRecord) throws NoSuchFieldException, IllegalAccessException, StoreException {
+    Object writeTo(Object object, FieldRecord fieldRecord) throws NoSuchFieldException, IllegalAccessException, StorageException {
         List<String> pathComponents = fieldRecord.locator.getParsedPath();
         return writeTo(object, pathComponents, fieldRecord.getValue(), fieldRecord);
     }
 
-    public Object writeTo(Object destination, List<String> path, Object value, FieldRecord fieldRecord) throws NoSuchFieldException, IllegalAccessException, StoreException {
-        log.debug(String.format("writeTo(d=%s, p=%s, v=%s, fr=%s", new Object[]{destination, path, value, fieldRecord}));
+    public Object writeTo(Object destination, List<String> path, Object value, FieldRecord fieldRecord)
+            throws NoSuchFieldException, IllegalAccessException, StorageException {
+        log.debug(String.format("writeTo(d=%s, p=%s, v=%s, fr=%s", destination, path, repr(value), fieldRecord));
         if (path.size() < 1) {
             throw new IllegalArgumentException("Hm.....");
         }
@@ -56,6 +57,16 @@ public class ObjectStructure extends ContextTracking {
         }
     }
 
+    private String repr(Object value) {
+        if (null == value) {
+            return null;
+        } else if (value instanceof String) {
+            return "\"" + value + "\"";
+        } else {
+            return value.toString();
+        }
+    }
+
     private FieldAccessor getAccessor(String fieldName, Class<?> clazz) throws NoSuchFieldException {
         if (fieldName.startsWith("[")) {
             int position = Integer.valueOf(fieldName.substring(1));
@@ -67,8 +78,11 @@ public class ObjectStructure extends ContextTracking {
         }
     }
 
-    private Object deserializeValue(Class clazz, Object value, FieldRecord fieldRecord) throws StoreException {
+    private Object deserializeValue(Class clazz, Object value, FieldRecord fieldRecord) throws StorageException {
         enter("deserializeValue");
+        if (value == null) {
+            return null;
+        }
         if (List.class.isAssignableFrom(clazz)) {
 //            UUID uuid = UUID.fromString((String)value);
             UUID uuid = getUUID(value);
@@ -81,6 +95,15 @@ public class ObjectStructure extends ContextTracking {
             Proxy proxy = new Proxy(uuid, Swap.getInstance().getStore(), clazz);
             exit();
             return proxy;
+        } else if (fieldRecord.isProxiedField()) {
+            if (null == value) {
+                return null;
+            } else {
+                return new Proxy(fieldRecord.getId(), Swap.getStorage(), fieldRecord.getClazz());
+            }
+        } else if (fieldRecord.isCompoundField()) {
+            return newInstance(clazz);
+//            throw new UnsupportedOperationException("TODO");
         } else {
             exit();
             return value;
@@ -96,22 +119,40 @@ public class ObjectStructure extends ContextTracking {
         return "ObjectTracking." + context;
     }
 
-    static Object valueFromString(String string, Class clazz, Class<Object> elementClass, UUID uuid, RECORD_TYPE recordType) throws NoSuchMethodException, InvocationTargetException, IllegalAccessException, InstantiationException, StoreException {
+    static Object valueFromString(String string, Class clazz, Class<Object> elementClass, UUID uuid, RECORD_TYPE recordType)
+            throws NoSuchMethodException, InvocationTargetException, IllegalAccessException, InstantiationException, StorageException {
+        if (null == string) {
+            return null;
+        }
         if (String.class.equals(clazz)) {
             return string;
         }
         if (ProxyList.class.isAssignableFrom(clazz)) {
 ////            List proxyList = swap.newWrapList(elementClass);
-//            List proxyList = new ProxyList(swap, elementClass, uuid, Swap.DONT_UNLOAD); // TODO UUID???
+//            List proxyList = new ProxyList(swap, elementClass, uuid, Swap.DONT_UNLOAD); // TO DO: UUID???
 //            return proxyList;
             return string; // TODO get this method out somewhere
+        } else if (RECORD_TYPE.LIST_ELEMENT.equals(recordType)) {
+            return string;
         } else {
-            if (RECORD_TYPE.LIST_ELEMENT.equals(recordType)) {
-                return string;
-            } else {
-                Constructor constructor = clazz.getConstructor();
-                return constructor.newInstance();
-            }
+            return newInstance(clazz);
+        }
+    }
+
+    private static Object newInstance(Class clazz) throws FieldRestoreException {
+        try {
+            Constructor constructor = clazz.getConstructor();
+            // this does not work for inner non-static classes: have to pass OuterClass.this to constructor
+            constructor.setAccessible(true);
+            return constructor.newInstance(); // TODO Also handle non-accessible constructors
+        } catch (NoSuchMethodException e) {
+            throw new FieldRestoreException(String.format("Can't create %s instance - Constructor() not found", clazz.getSimpleName()), e);
+        } catch (InstantiationException e) {
+            throw new FieldRestoreException("Can't create class instance - can't instantiate", e);
+        } catch (IllegalAccessException e) {
+            throw new FieldRestoreException("Can't create class instance - can't access constructor", e);
+        } catch (InvocationTargetException e) {
+            throw new FieldRestoreException("Can't create class instance - constructor thrown an exception", e);
         }
     }
 }

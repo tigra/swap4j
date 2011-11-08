@@ -2,7 +2,7 @@ package com.github.illarion.swap4j.store.scan;
 
 import com.github.illarion.swap4j.Baz;
 import com.github.illarion.swap4j.CustomAssertions;
-import com.github.illarion.swap4j.store.StoreException;
+import com.github.illarion.swap4j.store.StorageException;
 import com.github.illarion.swap4j.swap.ProxyList;
 import org.junit.Before;
 import org.junit.Test;
@@ -35,7 +35,7 @@ public class H2FieldStorageTest {
     }
 
     @Test
-    public void testSerialize() throws ClassNotFoundException, SQLException, StoreException {
+    public void testSerialize() throws ClassNotFoundException, SQLException, StorageException {
         FieldStorage storage = new H2FieldStorage();
         storage.serialize(new FieldRecordBuilder(3, "./field").setValue("hello").setClazz(String.class).setRecordType(PRIMITIVE_FIELD).create());
 
@@ -44,7 +44,7 @@ public class H2FieldStorageTest {
     }
 
     @Test
-    public void testSerializeOverwrite() throws ClassNotFoundException, SQLException, StoreException {
+    public void testSerializeOverwrite() throws ClassNotFoundException, SQLException, StorageException {
         FieldStorage storage = new H2FieldStorage();
         storage.serialize(new FieldRecordBuilder(3, "./field").setValue("hello").setClazz(String.class).setRecordType(PRIMITIVE_FIELD).create());
         storage.serialize(new FieldRecordBuilder(3, "./field").setValue("there").setClazz(String.class).setRecordType(PRIMITIVE_FIELD).create());
@@ -54,7 +54,7 @@ public class H2FieldStorageTest {
     }
 
     @Test
-    public void testClean() throws ClassNotFoundException, SQLException, StoreException {
+    public void testClean() throws ClassNotFoundException, SQLException, StorageException {
         // setup
         FieldStorage storage = new H2FieldStorage();
         storage.serialize(new FieldRecordBuilder(3, "./field1").setValue("hello").setClazz(String.class).setRecordType(PRIMITIVE_FIELD).create());

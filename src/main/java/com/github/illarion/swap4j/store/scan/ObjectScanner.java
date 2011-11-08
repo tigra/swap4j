@@ -1,6 +1,6 @@
 package com.github.illarion.swap4j.store.scan;
 
-import com.github.illarion.swap4j.store.StoreException;
+import com.github.illarion.swap4j.store.StorageException;
 import com.github.illarion.swap4j.swap.Proxy;
 import com.github.illarion.swap4j.swap.ProxyList;
 import com.github.illarion.swap4j.swap.ProxyUtils;
@@ -30,20 +30,20 @@ public class ObjectScanner {
         this.writer = writer;
     }
 
-    public void scanObject(UUID id, Object object) throws IllegalAccessException, StoreException {
+    public void scanObject(UUID id, Object object) throws IllegalAccessException, StorageException {
         objectContext.addRoot(id);
         scan(object, null);
     }
 
-    public void scanObject(Object object) throws StoreException, IllegalAccessException {
+    public void scanObject(Object object) throws StorageException, IllegalAccessException {
         scanObject(null, object);
     }
 
-    public <E> void scanObject(ProxyList<E> list, Class<E> elementClass) throws StoreException {
+    public <E> void scanObject(ProxyList<E> list, Class<E> elementClass) throws StorageException {
         scanProxyList(list, elementClass);
     }
 
-    private void scan(Object object, Field declaringField) throws IllegalAccessException, StoreException {
+    private void scan(Object object, Field declaringField) throws IllegalAccessException, StorageException {
         Type type = null;
         if (null != declaringField) {
             type = declaringField.getGenericType();
@@ -51,7 +51,7 @@ public class ObjectScanner {
         scanObject(object, type);
     }
 
-    private void scanObject(Object object, Type type) throws StoreException, IllegalAccessException {
+    private void scanObject(Object object, Type type) throws StorageException, IllegalAccessException {
         if (object == null) {
             return;
         }
@@ -72,7 +72,7 @@ public class ObjectScanner {
         }
     }
 
-    private void scanList(ProxyList list, Type type) throws StoreException {
+    private void scanList(ProxyList list, Type type) throws StorageException {
         Class elementClass = null;
         if (type instanceof ParameterizedType) {
             elementClass = (Class) ((ParameterizedType) type).getActualTypeArguments()[0];
@@ -83,16 +83,16 @@ public class ObjectScanner {
         scanProxyList(list, elementClass);
     }
 
-    private void scanProxyList(ProxyList list, Class elementClass) throws StoreException {
+    private void scanProxyList(ProxyList list, Class elementClass) throws StorageException {
         scanProxyList(null, list, elementClass);
     }
 
-    void scanProxyList(UUID uuid, ProxyList list, Class elementClass) throws StoreException {
+    void scanProxyList(UUID uuid, ProxyList list, Class elementClass) throws StorageException {
         objectContext.addRoot(uuid);
         visitProxyList(list, list.getClass(), elementClass);
     }
 
-    private void visitCompoundObject(Object object, Class clazz) throws IllegalAccessException, StoreException {
+    private void visitCompoundObject(Object object, Class clazz) throws IllegalAccessException, StorageException {
         if (null == object) {
             return;
         }
@@ -112,8 +112,13 @@ public class ObjectScanner {
                 visitProxyListField(object, field, fieldValue);
             } else if (String.class.isAssignableFrom(fieldType)) { // primitive
                 visitPrimitiveField(field.getName(), fieldValue, fieldType);
-            } else { // compound
-                visitCompoundField(field.getName(), fieldValue, clazz);
+            } else { // compound or proxy
+                Proxy proxy = ProxyUtils.getProxy(fieldValue);
+                if (null != proxy) {
+                    visitProxyField(field.getName(), proxy, fieldType);
+                } else {
+                    visitCompoundField(field.getName(), fieldValue, clazz);
+                }
             } // TODO handle ProxyList
         }
     }
@@ -129,7 +134,7 @@ public class ObjectScanner {
         return field.isSynthetic() || Modifier.isTransient(modifiers) || Modifier.isStatic(modifiers);
     }
 
-    private void visitProxyListField(Object object, Field field, Object fieldValue) throws StoreException {
+    private void visitProxyListField(Object object, Field field, Object fieldValue) throws StorageException {
         NDC.push(String.format("visitProxyListField(%s, %s, %s", object, field, fieldValue));
         try {
             // TODO remove some stuff here, it is done elvewhere
@@ -152,7 +157,7 @@ public class ObjectScanner {
         }
     }
 
-    private void visitProxyList2(Field field, Class<?> fieldType, ProxyList proxyListFieldValue) throws StoreException {
+    private void visitProxyList2(Field field, Class<?> fieldType, ProxyList proxyListFieldValue) throws StorageException {
         Type elementClass = getElementClass(field);
         visitProxyList(proxyListFieldValue, fieldType, elementClass); // TODO determine it properly
     }
@@ -167,7 +172,7 @@ public class ObjectScanner {
         return (Class) elementClass;
     }
 
-    private void visitProxy(Class clazz, Proxy proxy) throws StoreException, IllegalAccessException {
+    private void visitProxy(Class clazz, Proxy proxy) throws StorageException, IllegalAccessException {
         objectContext.updateId(proxy.getId());
         final Object realObject = proxy.getRealObject();
         write(objectContext.peek(), realObject, proxy.getClazz(), RECORD_TYPE.PROXIED_VALUE);
@@ -179,7 +184,7 @@ public class ObjectScanner {
         write(objectContext.peek(), proxy.getRealObject(), clazz, RECORD_TYPE.PROXIED_VALUE); // TODO type for enhanced?
     }
 
-    private void visitCompoundField(String name, Object value, Class clazz) throws IllegalAccessException, StoreException {
+    private void visitCompoundField(String name, Object value, Class clazz) throws IllegalAccessException, StorageException {
         Locator locator = objectContext.push(name);
         write(locator, value, clazz, RECORD_TYPE.COMPOUND_FIELD);
         scan(value, null);
@@ -209,9 +214,10 @@ public class ObjectScanner {
      * @param proxy
      * @param clazz Class for "proxy" - taken from class field
      * @throws IllegalAccessException
-     * @throws StoreException
+     * @throws com.github.illarion.swap4j.store.StorageException
+     *
      */
-    private void visitProxyField(String name, Proxy proxy, Class clazz) throws IllegalAccessException, StoreException {
+    private void visitProxyField(String name, Proxy proxy, Class clazz) throws IllegalAccessException, StorageException {
         if (null == proxy) {
             objectContext.push(name);
             write(objectContext.peek(), proxy, clazz, RECORD_TYPE.PROXIED_FIELD);
@@ -243,7 +249,7 @@ public class ObjectScanner {
         writer.serialize(fieldRecord);
     }
 
-    private void visitProxyList(ProxyList list, Class clazz, Type elementClass) throws StoreException {
+    private void visitProxyList(ProxyList list, Class clazz, Type elementClass) throws StorageException {
         if (null == list) {
             return;
         }
@@ -263,7 +269,7 @@ public class ObjectScanner {
     }
 
 
-    private void visitProxyListElement(Object obj, int pos, Class clazz) throws StoreException {
+    private void visitProxyListElement(Object obj, int pos, Class clazz) throws StorageException {
 //        if (Enhancer.isEnhanced(obj.getClass())) {
         Proxy proxy = ProxyUtils.getProxy(obj);
         if (proxy != null) {

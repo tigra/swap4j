@@ -1,14 +1,13 @@
 package com.github.illarion.swap4j;
 
 import com.github.illarion.swap4j.store.ObjectStorage;
-import com.github.illarion.swap4j.store.StoreException;
+import com.github.illarion.swap4j.store.StorageException;
 import com.github.illarion.swap4j.store.scan.FieldRecordBuilder;
 import com.github.illarion.swap4j.store.scan.FieldStorage;
 import com.github.illarion.swap4j.swap.Proxy;
 import com.github.illarion.swap4j.swap.ProxyList;
 import com.github.illarion.swap4j.swap.Swap;
 import junit.framework.TestCase;
-import org.hamcrest.MatcherAssert;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Ignore;
@@ -23,7 +22,6 @@ import static com.github.illarion.swap4j.CustomAssertions.*;
 import static com.github.illarion.swap4j.CustomAssertions.elementClassIs;
 import static com.github.illarion.swap4j.store.scan.RECORD_TYPE.*;
 import static org.hamcrest.CoreMatchers.equalTo;
-import static org.hamcrest.CoreMatchers.sameInstance;
 import static org.hamcrest.Matchers.hasItem;
 import static org.hamcrest.Matchers.nullValue;
 import static org.hamcrest.core.AllOf.allOf;
@@ -77,8 +75,28 @@ public abstract class AbstractSimpleTest extends TestCase {
         Swap.finishHim();
     }
 
+
+    @Test
+    public void testStoreNestedObject() throws StorageException {
+        // setup & excersize
+        Foo nested = swap.wrap(new Foo("2", null), Foo.class);
+        Foo foo = swap.wrap(new Foo("1", nested), Foo.class);
+
+        // verify
+        assertStorageContains(fieldStorage,
+                at(0, ".", allOf(clazzIs(Foo.class), recordTypeIs(PROXIED_VALUE))),
+                at(0, "./bar", allOf(clazzIs(String.class), valueIs("2"), recordTypeIs(PRIMITIVE_FIELD))),
+                at(0, "./nestedFoo", allOf(clazzIs(Foo.class), valueIs(null), recordTypeIs(PROXIED_FIELD))),
+                at(1, ".", allOf(clazzIs(Foo.class), recordTypeIs(PROXIED_VALUE))),
+                at(1, "./bar", allOf(clazzIs(String.class), valueIs("1"), recordTypeIs(PRIMITIVE_FIELD))),
+                at(1, "./nestedFoo", allOf(clazzIs(Foo.class), valueIsUuidStr(0), recordTypeIs(PROXIED_FIELD)))
+        );
+    }
+
+
+
     @Test(timeout = 2000)
-    public void testSwapSingleValue() throws StoreException {
+    public void testSwapSingleValue() throws StorageException {
         Bar bar = swap.wrap(new Bar("new"), Bar.class);
 
         bar.change("old");
@@ -88,7 +106,7 @@ public abstract class AbstractSimpleTest extends TestCase {
     }
 
     @Test(timeout = 2000)
-    public void testSwapList() throws StoreException {
+    public void testSwapList() throws StorageException {
 //        Swap swap = new Swap(objectStore);
 
         List<Bar> list = swap.newWrapList(Bar.class);
@@ -103,7 +121,7 @@ public abstract class AbstractSimpleTest extends TestCase {
 
     @Test
     @Ignore
-    public void testSimpleNestedList() throws StoreException {
+    public void testSimpleNestedList() throws StorageException {
         Baz root = swap.wrap(new Baz("root"), Baz.class);
         Baz inside = swap.wrap(new Baz("inside"), Baz.class);
         Baz deepInside = swap.wrap(new Baz("deepInside"), Baz.class);
@@ -122,7 +140,7 @@ public abstract class AbstractSimpleTest extends TestCase {
     }
 
     @Test
-    public void testEmptySwapList() throws StoreException {
+    public void testEmptySwapList() throws StorageException {
         List<Baz> list = swap.newWrapList(Baz.class);
 
         assertStorageContains(fieldStorage,
@@ -130,7 +148,7 @@ public abstract class AbstractSimpleTest extends TestCase {
     }
 
     @Test
-    public void testEmptySwapListInsideWrapped() throws StoreException {
+    public void testEmptySwapListInsideWrapped() throws StorageException {
         Baz baz = swap.wrap(new Baz("baz"), Baz.class);
 
         assertStorageContains(fieldStorage,
@@ -143,7 +161,7 @@ public abstract class AbstractSimpleTest extends TestCase {
     }
 
     @Test
-    public void testSwapListInsideProxyAddRegular() throws StoreException {
+    public void testSwapListInsideProxyAddRegular() throws StorageException {
         Baz root = new Baz("root");
         Proxy<Baz> bazProxy = new Proxy<Baz>(objectStore, root, Baz.class);
 
@@ -174,7 +192,7 @@ public abstract class AbstractSimpleTest extends TestCase {
 
 
     @Test
-    public void testSwapListInsideProxyAddWrapped() throws StoreException {
+    public void testSwapListInsideProxyAddWrapped() throws StorageException {
         Baz root = new Baz("root");
         Proxy<Baz> bazProxy = new Proxy<Baz>(objectStore, root, Baz.class);
 
@@ -205,7 +223,7 @@ public abstract class AbstractSimpleTest extends TestCase {
     }
 
     @Test
-    public void testSwapListInsideWrappedAddWrapped() throws StoreException {
+    public void testSwapListInsideWrappedAddWrapped() throws StorageException {
         Baz root = swap.wrap(new Baz("root"), Baz.class);
 
         assertStorageContains(fieldStorage,
@@ -244,7 +262,7 @@ public abstract class AbstractSimpleTest extends TestCase {
 
 
     @Test
-    public void testSimplestNestedList() throws StoreException {
+    public void testSimplestNestedList() throws StorageException {
         Baz root = swap.wrap(new Baz("root"), Baz.class);
         Baz inside = swap.wrap(new Baz("inside"), Baz.class);
         root.add(inside);
@@ -254,12 +272,12 @@ public abstract class AbstractSimpleTest extends TestCase {
 
         assertEquals("inside", root.getChildren().get(0).getValue());
         assertEquals("One element expected", 1, root.getChildren().size());
-//        assertEquals(0, inside.getChildren().size());
-        MatcherAssert.assertThat(inside.getChildren(), nullValue());
+        assertEquals(0, inside.getChildren().size());
+//        MatcherAssert.assertThat(inside.getChildren(), nullValue());
     }
 
     @Test
-    public void testDoubleGetProxyListField() throws StoreException {
+    public void testDoubleGetProxyListField() throws StorageException {
         Baz root = swap.wrap(new Baz("root"), Baz.class);
         Baz inside = swap.wrap(new Baz("inside"), Baz.class);
         root.add(inside);
@@ -273,7 +291,7 @@ public abstract class AbstractSimpleTest extends TestCase {
 
 
     @Test
-    public void testRestoreProxyList() throws StoreException {
+    public void testRestoreProxyList() throws StorageException {
         fieldStorage.serialize(new FieldRecordBuilder(3, ".").setValue("=Baz").setClazz(Baz.class).setRecordType(PROXIED_VALUE).create());
         fieldStorage.serialize(new FieldRecordBuilder(3, "./value").setValue("inside").setClazz(String.class).setRecordType(PRIMITIVE_FIELD).create());
         fieldStorage.serialize(new FieldRecordBuilder(3, "./children").setUuidValue(2).setClazz(ProxyList.class).setElementClass(Baz.class).setRecordType(LIST_FIELD).create());
@@ -292,7 +310,7 @@ public abstract class AbstractSimpleTest extends TestCase {
 
     @Test
 //        @Ignore
-    public void testNestedList() throws StoreException {
+    public void testNestedList() throws StorageException {
         Baz root = swap.wrap(new Baz("/"), Baz.class);
         Baz c1 = swap.wrap(new Baz("c1"), Baz.class);
         Baz c2 = swap.wrap(new Baz("c2"), Baz.class);
@@ -310,7 +328,7 @@ public abstract class AbstractSimpleTest extends TestCase {
     }
 
     @Test
-    public void testPrimitiveNull() throws StoreException {
+    public void testPrimitiveNull() throws StorageException {
         // TODO This test fails if testBigSwapList() and testSwapSet() are run before it. Why?
         Bar bar = Swap.doWrap(new Bar(null), Bar.class);
 
@@ -320,24 +338,23 @@ public abstract class AbstractSimpleTest extends TestCase {
         );
     }
 
-    @Test
-    @Ignore
-    public void testBigSwapList() throws StoreException {
-//        Swap swap = new Swap(objectStore);
-        List<Bar> list = swap.newWrapList(Bar.class);
-
-        for (int i = 0; i < 10000; i++) {
-            list.add(new Bar(String.valueOf(i)));
-        }
-
-        assertEquals("555", list.get(555).getValue());
-        assertEquals("1", list.get(1).getValue());
-        assertEquals("9999", list.get(9999).getValue());
-
-        list.get(555).change("_555_");
-
-        assertEquals("_555_", list.get(555).getValue());
-    }
+//    @Test
+//    @Ignore
+//    public void testBigSwapList() throws StorageException {
+//        List<Bar> list = swap.newWrapList(Bar.class);
+//
+//        for (int i = 0; i < 10000; i++) {
+//            list.add(new Bar(String.valueOf(i)));
+//        }
+//
+//        assertEquals("555", list.get(555).getValue());
+//        assertEquals("1", list.get(1).getValue());
+//        assertEquals("9999", list.get(9999).getValue());
+//
+//        list.get(555).change("_555_");
+//
+//        assertEquals("_555_", list.get(555).getValue());
+//    }
 
     @Test
     public void testSwapSet() {

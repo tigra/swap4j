@@ -3,7 +3,7 @@ package com.github.illarion.swap4j.swap;
 import com.github.illarion.swap4j.Bar;
 import com.github.illarion.swap4j.Baz;
 import com.github.illarion.swap4j.SequentalUUIDGenerator;
-import com.github.illarion.swap4j.store.StoreException;
+import com.github.illarion.swap4j.store.StorageException;
 import com.github.illarion.swap4j.store.scan.MapWriter;
 import com.github.illarion.swap4j.store.scan.TestObjectScannerObjectStorage;
 import org.hamcrest.Description;
@@ -36,12 +36,12 @@ public class ProxyListTest {
         swap = Swap.newInstance(objectStorage);
     }
     @Test
-    public void testEqualsEmptyLists() throws StoreException {
+    public void testEqualsEmptyLists() throws StorageException {
         assertThat(Swap.proxyList(Baz.class), equalTo(Swap.proxyList(Baz.class)));
     }
 
     @Test
-    public void testDoubleLoadEmpty() throws StoreException {
+    public void testDoubleLoadEmpty() throws StorageException {
         ProxyList<Bar> list = (ProxyList<Bar>)Swap.proxyList(Bar.class);
         list.load();
         assertThat(list.size(), equalTo(0));
@@ -50,14 +50,14 @@ public class ProxyListTest {
     }
 
     @Test
-    public void testLoad() throws StoreException {
+    public void testLoad() throws StorageException {
         ProxyList<Bar> list = (ProxyList<Bar>)Swap.proxyList(Bar.class);
         list.load();
         assertThat(list.size(), equalTo(0));
     }
 
     @Test
-    public void testLoad1() throws StoreException {
+    public void testLoad1() throws StorageException {
         ProxyList<Bar> list = (ProxyList<Bar>)Swap.proxyList(Bar.class);
         list.add(new Bar("element"));
         assertThat(list.size(), equalTo(1));
@@ -65,7 +65,7 @@ public class ProxyListTest {
     }
 
     @Test
-    public void testLoad2() throws StoreException {
+    public void testLoad2() throws StorageException {
         ProxyList<Bar> list = (ProxyList<Bar>)Swap.proxyList(Bar.class);
         list.unload();
         list.add(new Bar("element"));
@@ -74,14 +74,14 @@ public class ProxyListTest {
     }
 
     @Test
-    public void testContains() throws StoreException {
+    public void testContains() throws StorageException {
         ProxyList<Bar> list = (ProxyList<Bar>)Swap.proxyList(Bar.class);
         list.add(new Bar("element"));
         assertTrue("List should contain element that was inserted there", list.contains(new Bar("element")));
     }
 
     @Test
-    public void testUnloadedContains() throws StoreException {
+    public void testUnloadedContains() throws StorageException {
         ProxyList<Bar> list = (ProxyList<Bar>)Swap.proxyList(Bar.class);
         list.add(new Bar("element"));
         list.unload();
@@ -89,7 +89,7 @@ public class ProxyListTest {
     }
 
     @Test
-    public void testLoad3() throws StoreException {
+    public void testLoad3() throws StorageException {
         ProxyList<Bar> list = (ProxyList<Bar>)Swap.proxyList(Bar.class);
         list.add(new Bar("element"));
         list.unload();
@@ -107,7 +107,7 @@ public class ProxyListTest {
     }
 
     @Test
-    public void testDoubleLoadOneElement() throws StoreException {
+    public void testDoubleLoadOneElement() throws StorageException {
         ProxyList<Bar> list = (ProxyList<Bar>)Swap.proxyList(Bar.class);
         list.add(new Bar("onlyElement"));
         assertThat(list.size(), equalTo(1));

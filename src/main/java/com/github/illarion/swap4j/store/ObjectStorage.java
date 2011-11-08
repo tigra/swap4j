@@ -6,7 +6,6 @@ package com.github.illarion.swap4j.store;
 
 import com.github.illarion.swap4j.store.scan.FieldRecord;
 import com.github.illarion.swap4j.store.scan.Locator;
-import com.github.illarion.swap4j.swap.Proxy;
 import com.github.illarion.swap4j.swap.ProxyList;
 import com.github.illarion.swap4j.swap.Swap;
 
@@ -27,9 +26,9 @@ public interface ObjectStorage extends Iterable<Locator> {
      * @param id
      * @param object
      * @param <T>
-     * @throws StoreException
+     * @throws StorageException
      */
-    public<T> void store(UUID id, T object) throws StoreException;
+    public<T> void store(UUID id, T object) throws StorageException;
 
     /**
      * Load specified object of type T with given id.
@@ -37,9 +36,9 @@ public interface ObjectStorage extends Iterable<Locator> {
      * @param clazz
      * @param <T>
      * @return loaded object
-     * @throws StoreException
+     * @throws StorageException
      */
-    public<T> T reStore(UUID id, Class<T> clazz) throws StoreException;
+    public<T> T reStore(UUID id, Class<T> clazz) throws StorageException;
 
     /**
      * Creates unique UUID
@@ -61,12 +60,12 @@ public interface ObjectStorage extends Iterable<Locator> {
      * @param locator Locator identifying the field to load
      * @return loaded <code>FieldRecord</code>
      */
-    FieldRecord getSerializedField(Locator locator) throws StoreException;
+    FieldRecord getSerializedField(Locator locator) throws StorageException;
 
     @Deprecated // TODO Decouple Swap from ObjectStorage
     void setSwap(Swap swap);
 
-    public <T> void storeProxyList(UUID uuid, ProxyList proxyList, Class elementClass) throws StoreException;
+    public <T> void storeProxyList(UUID uuid, ProxyList proxyList, Class elementClass) throws StorageException;
 
-    public <T> List<T> reStoreList(UUID uuid, Class<T> elementClass, List<T> restored) throws StoreException;
+    public <T> List<T> reStoreList(UUID uuid, Class<T> elementClass, List<T> restored) throws StorageException;
 }

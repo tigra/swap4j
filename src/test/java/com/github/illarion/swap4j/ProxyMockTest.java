@@ -1,6 +1,6 @@
 package com.github.illarion.swap4j;
 
-import com.github.illarion.swap4j.store.StoreException;
+import com.github.illarion.swap4j.store.StorageException;
 import com.github.illarion.swap4j.store.scan.MapWriter;
 import com.github.illarion.swap4j.store.scan.TestObjectScannerObjectStorage;
 import com.github.illarion.swap4j.swap.Swap;
@@ -17,7 +17,6 @@ import static org.hamcrest.CoreMatchers.equalTo;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.powermock.api.mockito.PowerMockito.when;
 
@@ -47,7 +46,7 @@ public class ProxyMockTest {
     }
 
     @Test
-    public void testToStringDoesntTouchRealObject() throws StoreException {
+    public void testToStringDoesntTouchRealObject() throws StorageException {
         when(uuidGenerator.createUUID()).thenReturn(new UUID(0,0));
 //        final Object realObject = mock(Object.class);
 //        when(realObject.toString()).thenReturn("(RealObject)").thenThrow(new AssertionError("toString() of real object haven't be called"));

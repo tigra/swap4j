@@ -1,6 +1,6 @@
 package com.github.illarion.swap4j.swap;
 
-import com.github.illarion.swap4j.store.StoreException;
+import com.github.illarion.swap4j.store.StorageException;
 import org.junit.Test;
 
 import java.lang.reflect.Field;
@@ -33,14 +33,14 @@ public class UtilTest {
         }
     }
     @Test
-    public void testGetProxyClassParameterized() throws NoSuchFieldException, StoreException {
+    public void testGetProxyClassParameterized() throws NoSuchFieldException, StorageException {
         A a = new A(new Proxy<A>(new UUID(0,1), null, A.class));
         Field f = a.getClass().getDeclaredField("parameterizedProxy");
         assertEquals(A.class, Utils.getProxyType(f));
     }
 
     @Test
-    public void testGetProxyClassUnparameterized() throws NoSuchFieldException, StoreException {
+    public void testGetProxyClassUnparameterized() throws NoSuchFieldException, StorageException {
         A a = new A(null, new Proxy(new UUID(0,1), null, A.class));
         Field f = a.getClass().getDeclaredField("rawProxy");
         assertEquals(null, Utils.getProxyType(f));

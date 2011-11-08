@@ -121,4 +121,8 @@ public class Locator implements Comparable<Locator> {
     public boolean isListElementOf(UUID uuid) {
         return id.equals(uuid) && getPath().matches(".*\\[.+");
     }
+
+    public long getIdLong() {
+        return id.getLeastSignificantBits();
+    }
 }

@@ -1,6 +1,7 @@
 package com.github.illarion.swap4j.store.scan;
 
-import com.github.illarion.swap4j.store.StoreException;
+import com.github.illarion.swap4j.store.RecordNotFoundException;
+import com.github.illarion.swap4j.store.StorageException;
 import com.github.illarion.swap4j.swap.Swap;
 
 import java.util.*;
@@ -55,10 +56,10 @@ public class MapWriter implements FieldStorage {
     }
 
     @Override
-    public FieldRecord read(Locator locator) throws StoreException {
+    public FieldRecord read(Locator locator) throws StorageException {
         FieldRecord record = get(locator);
         if (null == record) {
-            throw new StoreException("Record not found", locator);           
+            throw new RecordNotFoundException(locator);           
         }
         return record;
     }

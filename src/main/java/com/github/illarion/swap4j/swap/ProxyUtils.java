@@ -1,6 +1,6 @@
 package com.github.illarion.swap4j.swap;
 
-import com.github.illarion.swap4j.store.StoreException;
+import com.github.illarion.swap4j.store.StorageException;
 import net.sf.cglib.proxy.Callback;
 
 import java.lang.reflect.InvocationTargetException;
@@ -25,9 +25,12 @@ public class ProxyUtils {
      * @param enhanced
      * @param <T>
      * @return
-     * @throws com.github.illarion.swap4j.store.StoreException
+     * @throws com.github.illarion.swap4j.store.StorageException
      */
-    public static <T> Proxy<T> getProxy(Object enhanced) throws StoreException {
+    public static <T> Proxy<T> getProxy(Object enhanced) throws StorageException {
+        if (null == enhanced) {
+            return null;
+        }
         try {
             Callback callback = ((Callback[]) call(enhanced, "getCallbacks"))[0];
             return (Proxy) call(callback, "getProxy");

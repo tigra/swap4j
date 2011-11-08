@@ -1,8 +1,10 @@
 package com.github.illarion.swap4j.store.scan;
 
+import com.github.illarion.swap4j.Foo;
 import com.github.illarion.swap4j.SequentalUUIDGenerator;
-import com.github.illarion.swap4j.store.StoreException;
+import com.github.illarion.swap4j.store.StorageException;
 import com.github.illarion.swap4j.swap.*;
+import org.hamcrest.Matcher;
 import org.jmock.Expectations;
 import org.jmock.Mockery;
 import org.jmock.Sequence;
@@ -18,6 +20,7 @@ import java.util.*;
 
 import static com.github.illarion.swap4j.CustomAssertions.*;
 import static junit.framework.Assert.assertEquals;
+import static org.hamcrest.CoreMatchers.allOf;
 
 /**
  * TODO Describe class
@@ -41,7 +44,7 @@ public class ObjectScannerTest {
     private MapWriter fieldStorage;
 
     @Before
-    public void setUp() throws StoreException {
+    public void setUp() throws StorageException {
         fieldStorage = new MapWriter();
         store = new TestObjectScannerObjectStorage(null, fieldStorage, uuidGenerator);
         swap = Swap.newInstance(store);
@@ -53,7 +56,7 @@ public class ObjectScannerTest {
     }
 
     @Test
-    public void testString() throws IllegalAccessException, StoreException {
+    public void testString() throws IllegalAccessException, StorageException {
         context.checking(new Expectations() {{
             one(objectSerializer).serialize(new FieldRecordBuilder(null, ".").setValue("hello").setClazz(String.class).setRecordType(RECORD_TYPE.PRIMITIVE_VALUE).create());
         }});
@@ -62,7 +65,7 @@ public class ObjectScannerTest {
     }
 
     @Test
-    public void testSimpleObject() throws IllegalAccessException, StoreException {
+    public void testSimpleObject() throws IllegalAccessException, StorageException {
         context.checking(new Expectations() {{
             one(objectSerializer).serialize(with(any(FieldRecord.class)));
         }});
@@ -72,7 +75,7 @@ public class ObjectScannerTest {
     }
 
     @Test
-    public void testNestedObject() throws IllegalAccessException, StoreException {
+    public void testNestedPojo() throws IllegalAccessException, StorageException {
         final Sequence serializing = context.sequence("serializing");
         context.checking(new UUIDSequenceExpectations(context) {{
 //            expectSequentalUUIDs(4);
@@ -92,7 +95,33 @@ public class ObjectScannerTest {
     }
 
     @Test
-    public void testNestedProxies() throws StoreException, IllegalAccessException {
+    public void testStoreNestedObject() throws StorageException {
+        context.checking(new UUIDSequenceExpectations(context) {{
+            expectSequentalUUIDs(1);
+
+            expectWrite(allOf(locatedAt(0, "."), clazzIs(Foo.class), clazzIs(Foo.class), recordTypeIsProxiedValue()));
+            expectWrite(allOf(locatedAt(0, "./bar"), clazzIs(String.class), valueIs("2"), recordTypeIsPrimitiveField()));
+            expectWrite(allOf(locatedAt(0, "./nestedFoo"), clazzIs(Foo.class), valueIs(null), recordTypeIsProxiedField()));
+            expectWrite(allOf(locatedAt(1, "."), clazzIs(Foo.class), recordTypeIsProxiedValue()));
+            expectWrite(allOf(locatedAt(1, "./bar"), clazzIs(String.class), valueIs("1"), recordTypeIsPrimitiveField()));
+            expectWrite(allOf(locatedAt(1, "./nestedFoo"), clazzIs(Foo.class), valueIsUuidStr(0), recordTypeIsProxiedField()));
+        }});
+
+        // excersize (& verify)
+        Foo nested = swap.wrap(new Foo("2", null), Foo.class);
+        Foo foo = swap.wrap(new Foo("1", nested), Foo.class);
+    }
+
+    private Matcher<? super FieldRecord> recordTypeIsProxiedField() {
+        return recordTypeIs(RECORD_TYPE.PROXIED_FIELD);
+    }
+
+    //    private <T> T withAllOf(Matcher<T>... matchers) {
+//        return with(allOf(matchers));
+//    }
+
+    @Test
+    public void testNestedProxies() throws StorageException, IllegalAccessException {
 //        final Sequence serializing = context.sequence("serializing");
         final UUIDGenerator uuidGenerator = context.mock(RandomUuidGenerator.class);
 
@@ -118,7 +147,7 @@ public class ObjectScannerTest {
     }
 
     @Test
-    public void testList() throws IllegalAccessException, StoreException {
+    public void testList() throws IllegalAccessException, StorageException {
 //        final UUIDGenerator uuidGenerator = context.mock(RandomUuidGenerator.class);
         final UUIDGenerator uuidGenerator = new SequentalUUIDGenerator(3);
         store.setUuidGenerator(uuidGenerator);
@@ -169,7 +198,7 @@ public class ObjectScannerTest {
     }
 
     @Test
-    public void testTransientFieldsAreIgnored() throws StoreException, IllegalAccessException {
+    public void testTransientFieldsAreIgnored() throws StorageException, IllegalAccessException {
         ObjectWithTransientField objectWithTransientField = new ObjectWithTransientField();
 
         final UUIDGenerator uuidGenerator = context.mock(RandomUuidGenerator.class);
@@ -214,11 +243,11 @@ public class ObjectScannerTest {
         }
     }
 
-    private class ProxyNested {
+    private static class ProxyNested {
         String field;
         Proxy<ProxyNested> proxy;
 
-        ProxyNested() {
+        public ProxyNested() {
         }
 
         ProxyNested(String field, Proxy<ProxyNested> proxy) {

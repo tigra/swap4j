@@ -5,7 +5,7 @@
 package com.github.illarion.swap4j.swap;
 
 import com.github.illarion.swap4j.store.ObjectStorage;
-import com.github.illarion.swap4j.store.StoreException;
+import com.github.illarion.swap4j.store.StorageException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -37,18 +37,20 @@ public class Swap {
      * @param clazz
      * @param <T>
      * @return
-     * @throws StoreException
+     * @throws com.github.illarion.swap4j.store.StorageException
      */
-    public <T> T wrap(T instance, Class<T> clazz) throws StoreException {
+    public <T> T wrap(T instance, Class<T> clazz) throws StorageException {
         if (null == instance) {
-            log.debug("Swap.wrap - can't wrap null");
+            log.error("Swap.wrap - can't wrap null");
             return null;
         } else if (isWrapped(instance)) {
             log.debug("Swap.wrap - already wrapped: " + ((SwapPowered) instance).getRealObject());
             return instance;
         } else {
             log.debug("Swap.wrap - wrapping: " + instance);
-            return new Proxy<T>(objectStore, instance, clazz).get();
+            Proxy<T> proxy = new Proxy<T>(objectStore, instance, clazz, true);
+            T wrapped = proxy.get();
+            return wrapped;
         }
     }
 
@@ -56,7 +58,7 @@ public class Swap {
         return null == instance || instance instanceof SwapPowered;
     }
 
-    public <T> List<T> newWrapList(Class<T> clazz) throws StoreException {
+    public <T> List<T> newWrapList(Class<T> clazz) throws StorageException {
         return new ProxyList<T>(this, clazz);
     }
 
@@ -79,7 +81,7 @@ public class Swap {
 //        instance = swap;
     }
 
-    public static <T> T doWrap(T object, Class<T> clazz) throws StoreException {
+    public static <T> T doWrap(T object, Class<T> clazz) throws StorageException {
         return getInstance().wrap(object, clazz);
     }
 
@@ -89,7 +91,7 @@ public class Swap {
         return instance;
     }
 
-    public static <T> T newEmptyWrapper(UUID uuid, Class<T> clazz) throws StoreException {
+    public static <T> T newEmptyWrapper(UUID uuid, Class<T> clazz) throws StorageException {
         return new Proxy<T>(uuid, getInstance().getStore(), clazz).get();
     }
 
@@ -132,7 +134,11 @@ public class Swap {
         }
     }
 
-    public static <T> List<T> proxyList(Class<T> clazz) throws StoreException {
+    public static <T> List<T> proxyList(Class<T> clazz) throws StorageException {
         return getInstance().newWrapList(clazz);
+    }
+
+    public static ObjectStorage getStorage() {
+        return getInstance().getStore();
     }
 }

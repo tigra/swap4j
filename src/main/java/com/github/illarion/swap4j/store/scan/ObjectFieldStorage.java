@@ -1,7 +1,8 @@
 package com.github.illarion.swap4j.store.scan;
 
 import com.github.illarion.swap4j.store.ObjectStorage;
-import com.github.illarion.swap4j.store.StoreException;
+import com.github.illarion.swap4j.store.RecordNotFoundException;
+import com.github.illarion.swap4j.store.StorageException;
 import com.github.illarion.swap4j.swap.ContextTracking;
 import com.github.illarion.swap4j.swap.ProxyList;
 import com.github.illarion.swap4j.swap.Swap;
@@ -10,6 +11,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.lang.reflect.InvocationTargetException;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
@@ -51,72 +53,84 @@ public abstract class ObjectFieldStorage extends ContextTracking implements Obje
      * @param clazz
      * @param <T>
      * @return loaded object
-     * @throws com.github.illarion.swap4j.store.StoreException
+     * @throws com.github.illarion.swap4j.store.StorageException
      *
      */
     @Override
-    public <T> T reStore(UUID id, Class<T> clazz) throws StoreException {
+    public <T> T reStore(UUID id, Class<T> clazz) throws StorageException {
         try {
             enter("reStore");
             final String path;
             if (ProxyList.class.isAssignableFrom(clazz)) {
-                final FieldRecord<ProxyListRecord> fieldRecord = fieldStorage.read(new Locator(id, ".["));
-                ProxyList proxyList = new ProxyList(swap, fieldRecord.getClazz(), id, (ProxyListRecord) fieldRecord.getValue());
-                // TODO load elements, call something else instead
-                return (T) proxyList;
+//                final FieldRecord<ProxyListRecord> fieldRecord = fieldStorage.read(new Locator(id, ".["));
+//                ProxyList proxyList = new ProxyList(swap, fieldRecord.getClazz(), id, (ProxyListRecord) fieldRecord.getValue());
+//                // TODO load elements, call something else instead
+//                return (T) proxyList;
+                List listToRestore = new ArrayList();
+                return (T) reStoreList(id, Object.class, listToRestore);
             } else {
-                List<FieldRecord> fieldRecords = fieldStorage.readAll(id);
-                log.debug("records read:{}", fieldRecords);
-                if (fieldRecords.size() == 0) {
-                    log.error("Object not found in ObjectScannerStore.reStore(" + id + ", " + clazz);
-                    throw new StoreException("Object not found in ObjectScannerStore.reStore(" + id + ", " + clazz);
-                }
-                FieldRecord rootRecord = fieldRecords.get(0);
-
-                T object = createRootObject(id, clazz, rootRecord);
-
-                for (FieldRecord fieldRecord : fieldRecords) {
-                    if (fieldRecord.getRecordType() == RECORD_TYPE.LIST_FIELD) {
-                        List emptyList = ((ProxyList) fieldRecord.writeTo(object)).getRealList();
-                        //reStoreList(fieldRecord.getValueAsUuid(), fieldRecord.getElementClass(), emptyList);
-                    } else {
-                        fieldRecord.writeTo(object);
-                    }
-                }
-                return object;
-//                path = ".";
-//                final FieldRecord serializedField = fieldStorage.read(new Locator(id, path));
-//                if (null == serializedField) {
-//                    throw new StoreException("Object not found in ObjectScannerStore.reStore(" + id + ", " + clazz);
-//                }
-//                return (T) (serializedField.getValue());
+                return restoreCompoundObject(id, clazz);
             }
         } catch (ClassCastException cce) {
-            throw new StoreException("ObjectScannerStore.reStore(" + id + ", " + clazz, cce);
+            throw new StorageException("ObjectScannerStore.reStore(" + id + ", " + clazz, cce);
         } catch (IllegalAccessException e) {
-            throw new StoreException("ObjectScannerStore.reStore(" + id + ", " + clazz, e);
+            throw new StorageException("ObjectScannerStore.reStore(" + id + ", " + clazz, e);
         } catch (NoSuchFieldException e) {
-            throw new StoreException("ObjectScannerStore.reStore(" + id + ", " + clazz, e);
+            throw new StorageException("ObjectScannerStore.reStore(" + id + ", " + clazz, e);
+        } catch (NoSuchMethodException e) {
+            throw new StorageException("ObjectScannerStore.reStore(" + id + ", " + clazz, e);
+        } catch (InstantiationException e) {
+            throw new StorageException("ObjectScannerStore.reStore(" + id + ", " + clazz, e);
+        } catch (InvocationTargetException e) {
+            throw new StorageException("ObjectScannerStore.reStore(" + id + ", " + clazz, e);
         } finally {
             exit();
         }
     }
 
-    private <T> T createRootObject(UUID id, Class<T> clazz, FieldRecord rootRecord) throws IllegalAccessException, StoreException {
-        // TODO improve code here and don't do this inside FieldStorage
-        T object = (T) rootRecord.getValue();
-        if (object instanceof String) {
-            try {
-                object = (T) ObjectStructure.valueFromString((String)object, clazz, null, id, rootRecord.getRecordType());
-            } catch (NoSuchMethodException e) {
-                log.error("", e);
-            } catch (InvocationTargetException e) {
-                log.error("", e);
-            } catch (InstantiationException e) {
-                log.error("", e);
+    private <T> T restoreCompoundObject(UUID id, Class<T> clazz)
+            throws StorageException, IllegalAccessException, InvocationTargetException, NoSuchMethodException, InstantiationException, NoSuchFieldException {
+        enter("restoreCompoundObject(%s, %s)", id, clazz);
+        try {
+            List<FieldRecord> fieldRecords = fieldStorage.readAll(id);
+            log.debug("records read: {}", fieldRecords);
+            if (fieldRecords.size() == 0) {
+                log.error("Object not found in ObjectScannerStore.reStore(" + id + ", " + clazz);
+                throw new StorageException("Object not found in ObjectScannerStore.reStore(" + id + ", " + clazz);
             }
+            FieldRecord rootRecord = fieldRecords.get(0);
+
+            T object = createRootObject(id, clazz, rootRecord);
+
+            for (FieldRecord fieldRecord : fieldRecords) {
+                if (fieldRecord.getRecordType() == RECORD_TYPE.LIST_FIELD) {
+                    List emptyList = ((ProxyList) fieldRecord.writeTo(object)).getRealList();
+                    //reStoreList(fieldRecord.getValueAsUuid(), fieldRecord.getElementClass(), emptyList);
+                } else {
+                    fieldRecord.writeTo(object);
+                }
+            }
+            return object;
+        } finally {
+            exit();
         }
-        return object;
+//                path = ".";
+//                final FieldRecord serializedField = fieldStorage.read(new Locator(id, path));
+//                if (null == serializedField) {
+//                    throw new StorageException("Object not found in ObjectScannerStore.reStore(" + id + ", " + clazz);
+//                }
+//                return (T) (serializedField.getValue());
+    }
+
+    private <T> T createRootObject(UUID id, Class<T> clazz, FieldRecord rootRecord)
+            throws IllegalAccessException, StorageException, InvocationTargetException, NoSuchMethodException, InstantiationException {
+        // TODO improve code here and don't do this inside FieldStorage
+        Object object = rootRecord.getValue();
+        if (object instanceof String) {
+            return (T) ObjectStructure.valueFromString((String) object, clazz, null, id, rootRecord.getRecordType());
+        } else {
+            return (T) object;
+        }
     }
 
     /**
@@ -125,11 +139,11 @@ public abstract class ObjectFieldStorage extends ContextTracking implements Obje
      * @param id
      * @param object
      * @param <T>
-     * @throws com.github.illarion.swap4j.store.StoreException
+     * @throws com.github.illarion.swap4j.store.StorageException
      *
      */
     @Override
-    public <T> void store(UUID id, T object) throws StoreException {
+    public <T> void store(UUID id, T object) throws StorageException {
         try {
             synchronized (fieldStorage) {
                 enter("store");
@@ -141,14 +155,14 @@ public abstract class ObjectFieldStorage extends ContextTracking implements Obje
                 }
             }
         } catch (IllegalAccessException e) {
-            throw new StoreException("IllegalAccessException thrown when analysing object " + object, e);
+            throw new StorageException("IllegalAccessException thrown when analysing object " + object, e);
         } finally {
             exit();
         }
     }
 
     @Override
-    public <T> void storeProxyList(UUID uuid, ProxyList proxyList, Class elementClass) throws StoreException {
+    public <T> void storeProxyList(UUID uuid, ProxyList proxyList, Class elementClass) throws StorageException {
         synchronized (fieldStorage) {
             enter("storeProxyList");
             fieldStorage.clean(uuid);
@@ -158,13 +172,18 @@ public abstract class ObjectFieldStorage extends ContextTracking implements Obje
     }
 
     @Override
-    public <T> List<T> reStoreList(UUID uuid, Class<T> elementClass, List<T> listToRestore) throws StoreException {
+    public <T> List<T> reStoreList(UUID uuid, Class<T> elementClass, List<T> listToRestore) throws StorageException {
         enter("reStoreList");
         try {
             if (listToRestore instanceof ProxyList) {
                 throw new IllegalArgumentException("Can't restore into ProxyList");
             }
-            FieldRecord listRecord = fieldStorage.read(new Locator(uuid, ".[")); // TODO ?????
+            try {
+                FieldRecord listRecord = fieldStorage.read(new Locator(uuid, ".[")); // TODO ?????
+            } catch (RecordNotFoundException rnfe) {
+                log.error("List not found", rnfe); // TODO?
+//                return null;
+            }
 //        List<T> restored = new ArrayList<T>();
             List<FieldRecord> elementRecords = fieldStorage.readElementRecords(uuid, elementClass);
             for (FieldRecord record : elementRecords) {

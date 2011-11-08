@@ -1,7 +1,5 @@
 package com.github.illarion.swap4j.store.scan;
 
-import com.sun.corba.se.spi.orb.ORBVersionFactory;
-
 import java.util.UUID;
 
 public class FieldRecordBuilder<T> {

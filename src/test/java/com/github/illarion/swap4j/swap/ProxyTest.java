@@ -1,6 +1,6 @@
 package com.github.illarion.swap4j.swap;
 
-import com.github.illarion.swap4j.store.StoreException;
+import com.github.illarion.swap4j.store.StorageException;
 import com.github.illarion.swap4j.store.scan.MapWriter;
 import com.github.illarion.swap4j.store.scan.TestObjectScannerObjectStorage;
 import org.junit.Before;
@@ -11,10 +11,7 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 /**
- * TODO Describe class
- * <p/>
- * <p/>
- * Created at: Sep 25, 2011 10:26:49 PM
+ * Test for <code>Proxy</code> class functionality.
  *
  * @author Alexey Tigarev
  */
@@ -30,7 +27,7 @@ public class ProxyTest {
         storage.setSwap(swap);
     }
 
-    static class A {
+    public static class A {
         private String field;
 
         public A() {
@@ -62,7 +59,7 @@ public class ProxyTest {
         }
     }
     @Test
-    public void testEquals() throws StoreException {
+    public void testEquals() throws StorageException {
 //        sleep();
 
         // setup
@@ -88,7 +85,7 @@ public class ProxyTest {
     }
 
     @Test
-    public void testUnloadLoad() throws StoreException {
+    public void testUnloadLoad() throws StorageException {
         // setup
         A realObject = new A("a");
 
@@ -103,7 +100,7 @@ public class ProxyTest {
 
     @Test
 //    @Ignore("let testEquals run alone")
-    public void testUnloadGet() throws StoreException {
+    public void testUnloadGet() throws StorageException {
         // setup
         A realObject = new A("a");
 
@@ -118,7 +115,7 @@ public class ProxyTest {
     }
 
     @Test
-    public void testConstructorUnloads() throws StoreException {
+    public void testConstructorUnloads() throws StorageException {
         // setup
 //        final TestObjectScannerObjectStorage storage = new TestObjectScannerObjectStorage(null, new MapWriter(), new UUIDGenerator());
 //        Swap swap = new Swap(storage);

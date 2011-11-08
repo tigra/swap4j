@@ -1,6 +1,6 @@
 package com.github.illarion.swap4j.store.scan;
 
-import com.github.illarion.swap4j.store.StoreException;
+import com.github.illarion.swap4j.store.StorageException;
 import com.github.illarion.swap4j.swap.Swap;
 
 import java.util.Iterator;
@@ -18,7 +18,7 @@ import java.util.UUID;
 public interface FieldStorage extends Iterable<Locator> {
     void serialize(FieldRecord representation);
 
-    FieldRecord read(Locator locator) throws StoreException;
+    FieldRecord read(Locator locator) throws StorageException;
 
     /**
      * Read all fields of object identified by given <code>uuid</code>.

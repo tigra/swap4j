@@ -4,7 +4,8 @@
  */
 package com.github.illarion.swap4j.swap;
 
-import com.github.illarion.swap4j.store.StoreException;
+import com.github.illarion.swap4j.store.StorageException;
+
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.logging.Level;
@@ -30,7 +31,7 @@ class ProxySet<T> extends HashSet<T> {
         try {
             wrapped = swap.wrap(e, clazz);
             return super.add(wrapped);
-        } catch (StoreException ex) {
+        } catch (StorageException ex) {
             Logger.getLogger(ProxySet.class.getName()).log(Level.SEVERE, null, ex);
         }
         return false;

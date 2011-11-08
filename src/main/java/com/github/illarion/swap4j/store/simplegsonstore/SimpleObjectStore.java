@@ -5,7 +5,7 @@
 package com.github.illarion.swap4j.store.simplegsonstore;
 
 import com.github.illarion.swap4j.store.ObjectStorage;
-import com.github.illarion.swap4j.store.StoreException;
+import com.github.illarion.swap4j.store.StorageException;
 import com.github.illarion.swap4j.store.scan.FieldRecord;
 import com.github.illarion.swap4j.store.scan.Locator;
 import com.github.illarion.swap4j.swap.*;
@@ -39,7 +39,7 @@ public class SimpleObjectStore implements ObjectStorage {
     private Gson gson = new GsonBuilder().create();
     private UUIDGenerator uuidGenerator = new RandomUuidGenerator();
 
-    public SimpleObjectStore(File dir) throws StoreException {
+    public SimpleObjectStore(File dir) throws StorageException {
         this.dir = dir;
 
         if (!dir.exists()) {
@@ -47,12 +47,12 @@ public class SimpleObjectStore implements ObjectStorage {
         }
 
         if (dir.isFile()) {
-            throw new StoreException("For simple store it should be directory");
+            throw new StorageException("For simple store it should be directory");
         }
     }
 
     @Override
-    public <T> void store(UUID id, T t) throws StoreException {
+    public <T> void store(UUID id, T t) throws StorageException {
         PrintStream w = null;
         try {
             System.out.println("Storing " + id + " " + t.toString());
@@ -86,9 +86,9 @@ public class SimpleObjectStore implements ObjectStorage {
      * @param object object to store
      * @param <T> type of an object
      * @return <code>true</code> if this is enhanced proxy and save succeeds, <code>false</code> otherwise
-     * @throws StoreException in case of storage error
+     * @throws com.github.illarion.swap4j.store.StorageException in case of storage error
      */
-    private <T> boolean tryToStoreProxy(UUID id, Object object) throws StoreException {
+    private <T> boolean tryToStoreProxy(UUID id, Object object) throws StorageException {
         if (Enhancer.isEnhanced(object.getClass())) {
             Proxy<T> proxy = ProxyUtils.getProxy(object);
             if (proxy != null) {
@@ -101,7 +101,7 @@ public class SimpleObjectStore implements ObjectStorage {
 
 
     @Override
-    public <T> T reStore(UUID id, Class<T> clazz) throws StoreException {
+    public <T> T reStore(UUID id, Class<T> clazz) throws StorageException {
         System.out.println("ReStore " + id);
         BufferedReader in = null;
         try {
@@ -109,28 +109,28 @@ public class SimpleObjectStore implements ObjectStorage {
             String readLine = in.readLine();
             return gson.fromJson(readLine, clazz);
         } catch (IOException e) {
-            throw new StoreException(e);
+            throw new StorageException(e);
         } finally {
             IOUtils.closeQuietly(in);
         }
     }
 
-    private PrintStream getOutputStream(UUID id) throws StoreException {
+    private PrintStream getOutputStream(UUID id) throws StorageException {
         try {
             if (!dir.exists()) {
                 dir.mkdir();
             }
             return new PrintStream(new FileOutputStream(new File(dir, id.toString())));
         } catch (IOException e) {
-            throw new StoreException(e);
+            throw new StorageException(e);
         }
     }
 
-    private BufferedReader getInputStream(UUID id) throws StoreException {
+    private BufferedReader getInputStream(UUID id) throws StorageException {
         try {
             return new BufferedReader(new FileReader(new File(dir, id.toString())));
         } catch (FileNotFoundException ex) {
-            throw new StoreException(ex);
+            throw new StorageException(ex);
         }
     }
 
@@ -153,7 +153,7 @@ public class SimpleObjectStore implements ObjectStorage {
     }
 
     @Override
-    public <T> void storeProxyList(UUID uuid, ProxyList proxyList, Class elementClass) throws StoreException {
+    public <T> void storeProxyList(UUID uuid, ProxyList proxyList, Class elementClass) throws StorageException {
         throw new UnsupportedOperationException(""); // TODO Implement this method
 
     }

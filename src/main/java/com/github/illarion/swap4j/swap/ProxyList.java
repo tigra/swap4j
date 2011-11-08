@@ -5,7 +5,7 @@
 package com.github.illarion.swap4j.swap;
 
 import com.github.illarion.swap4j.store.ObjectStorage;
-import com.github.illarion.swap4j.store.StoreException;
+import com.github.illarion.swap4j.store.StorageException;
 import com.github.illarion.swap4j.store.scan.ID;
 import com.github.illarion.swap4j.store.scan.ProxyListRecord;
 import org.slf4j.LoggerFactory;
@@ -27,7 +27,7 @@ public class ProxyList<T> extends Swappable<T> implements List<T> {
     private boolean loaded = true;
 
     @Deprecated
-    public ProxyList(Swap swap, Class<T> elementClass, UUID id, ProxyListRecord proxyListRecord) throws StoreException {
+    public ProxyList(Swap swap, Class<T> elementClass, UUID id, ProxyListRecord proxyListRecord) throws StorageException {
         enter("constructor ProxyList(%s, %s, %s, %s)", swap, elementClass, id, proxyListRecord);
         try {
             this.swap = swap;
@@ -47,7 +47,7 @@ public class ProxyList<T> extends Swappable<T> implements List<T> {
     }
 
     @Deprecated
-    private void createProxies(ProxyListRecord proxyListRecord) throws StoreException {
+    private void createProxies(ProxyListRecord proxyListRecord) throws StorageException {
         for (Object listElementId : proxyListRecord) {
 //            list.add(new Proxy((UUID)listElementId, swap.getStore(), clazz));
 //            list.add(swap.wrap())
@@ -55,11 +55,11 @@ public class ProxyList<T> extends Swappable<T> implements List<T> {
         }
     }
 
-    private T emptyProxy(UUID uuid, Class<T> clazz) throws StoreException {
+    private T emptyProxy(UUID uuid, Class<T> clazz) throws StorageException {
         return (T) new Proxy(uuid, objectStore, clazz).get();
     }
 
-    public ProxyList(Swap swap, Class<T> elementClass) throws StoreException {
+    public ProxyList(Swap swap, Class<T> elementClass) throws StorageException {
         enter("constructor ProxyList(%s, %s)", swap, elementClass);
         this.swap = swap;
         this.elementClass = elementClass;
@@ -71,11 +71,11 @@ public class ProxyList<T> extends Swappable<T> implements List<T> {
         exit();
     }
 
-    public ProxyList(Swap swap, Class<T> elementClass, UUID uuid) throws StoreException {
+    public ProxyList(Swap swap, Class<T> elementClass, UUID uuid) throws StorageException {
         this(swap, elementClass, uuid, true);
     }
 
-    public ProxyList(Swap swap, Class<T> elementClass, UUID uuid, boolean doUnload) throws StoreException {
+    public ProxyList(Swap swap, Class<T> elementClass, UUID uuid, boolean doUnload) throws StorageException {
         enter("constructor ProxyList(swap=%s, elementClass=%s, uuid=%s, doUnload=%s)", swap, elementClass, uuid, doUnload);
         this.elementClass = elementClass;
         this.id = uuid;
@@ -92,7 +92,7 @@ public class ProxyList<T> extends Swappable<T> implements List<T> {
     }
 
     @Override
-    public void load() throws StoreException {
+    public void load() throws StorageException {
         // TODO implement loading
         synchronized (id) {
             enter("load()");
@@ -121,7 +121,7 @@ public class ProxyList<T> extends Swappable<T> implements List<T> {
     }
 
     @Override
-    public void unload() throws StoreException {
+    public void unload() throws StorageException {
         try {
             enter("unload");
             log.debug("unload(), " + listInfo());
@@ -154,7 +154,7 @@ public class ProxyList<T> extends Swappable<T> implements List<T> {
             boolean result = list.add(wrapped);
             elementCount++;
             return result;
-        } catch (StoreException ex) {
+        } catch (StorageException ex) {
             log.error("Error adding " + e + " to ProxyList with id=" + id, ex);
         } finally {
             exit();
@@ -168,7 +168,7 @@ public class ProxyList<T> extends Swappable<T> implements List<T> {
                 if (!loaded) {
                     load();
                 }
-            } catch (StoreException se) {
+            } catch (StorageException se) {
                 log.error("Error loading ProxyList with id=" + id, se);
                 throw new IllegalStateException("Can't load ProxyList: " + this, se);
             }

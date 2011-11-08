@@ -1,6 +1,6 @@
 package com.github.illarion.swap4j.swap;
 
-import com.github.illarion.swap4j.store.StoreException;
+import com.github.illarion.swap4j.store.StorageException;
 
 import java.util.UUID;
 
@@ -13,11 +13,11 @@ import java.util.UUID;
  * @author Alexey Tigarev
  */
 public interface Locatable<T> {
-    void load() throws StoreException;
+    void load() throws StorageException;
 
     UUID getId();
 
     boolean isLoaded();
 
-    void unload() throws StoreException;
+    void unload() throws StorageException;
 }

@@ -1,8 +1,10 @@
 package com.github.illarion.swap4j.swap;
 
+import com.github.illarion.swap4j.store.scan.FieldRecord;
 import com.github.illarion.swap4j.store.scan.FieldRecordBuilder;
 import com.github.illarion.swap4j.store.scan.FieldStorage;
 import com.github.illarion.swap4j.store.scan.RECORD_TYPE;
+import org.hamcrest.Matcher;
 import org.jmock.Expectations;
 import org.jmock.Mockery;
 import org.jmock.Sequence;
@@ -36,6 +38,7 @@ public class UUIDSequenceExpectations extends Expectations {
         this.uuidGenerator = mockery.mock(RandomUuidGenerator.class);
         this.uuidSequence = createSequence(mockery, "uuid");
         this.serializationSequence = createSequence(mockery, "serialization");
+        this.objectSerializer = mockery.mock(FieldStorage.class);
     }
 
 
@@ -75,7 +78,11 @@ public class UUIDSequenceExpectations extends Expectations {
     }
 
     protected <T> void expectWrite(UUID id, String path, T value, Class clazz, RECORD_TYPE recordType) {
-        one(objectSerializer).serialize(with(equal(new FieldRecordBuilder(id, path).setValue(value).setClazz(clazz).setRecordType(recordType).create())));
+        expectWrite(equal(new FieldRecordBuilder(id, path).setValue(value).setClazz(clazz).setRecordType(recordType).create()));
+    }
+
+    protected <T> void expectWrite(Matcher<FieldRecord> matcher) {
+        one(objectSerializer).serialize(with(matcher));
         inSequence(serializationSequence);
     }
 }
